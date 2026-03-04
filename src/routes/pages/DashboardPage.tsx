@@ -1,0 +1,198 @@
+import { Link } from 'react-router-dom';
+import {
+  RiShoppingBagLine,
+  RiHeartLine,
+  RiTruckLine,
+  RiArrowRightSLine,
+  RiCheckboxCircleLine,
+  RiMapPinLine,
+  RiArrowUpLine,
+} from 'react-icons/ri';
+import { useAppSelector } from '../../shared/hooks';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const spendData = [
+  { month: 'Oct', amount: 840 },
+  { month: 'Nov', amount: 1200 },
+  { month: 'Dec', amount: 950 },
+  { month: 'Jan', amount: 1800 },
+  { month: 'Feb', amount: 1350 },
+  { month: 'Mar', amount: 2100 },
+];
+
+const recentOrders = [
+  { id: 'ORD-001', product: 'Organic Tomatoes', qty: '5 kg', amount: 200, status: 'shipped', date: '2 Mar 2026' },
+  { id: 'ORD-002', product: 'Basmati Rice', qty: '10 kg', amount: 550, status: 'delivered', date: '28 Feb 2026' },
+  { id: 'ORD-003', product: 'Alphonso Mangoes', qty: '2 kg', amount: 300, status: 'pending', date: '1 Mar 2026' },
+];
+
+const statusColors: Record<string, string> = {
+  pending: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+  processing: 'text-blue-700  bg-blue-50   border-blue-200',
+  shipped: 'text-violet-700 bg-violet-50 border-violet-200',
+  out_delivery: 'text-orange-700 bg-orange-50 border-orange-200',
+  delivered: 'text-green-700 bg-green-50  border-green-200',
+  cancelled: 'text-red-700   bg-red-50    border-red-200',
+};
+
+const trackingSteps = [
+  { label: 'Order Placed', done: true, icon: RiShoppingBagLine },
+  { label: 'Confirmed', done: true, icon: RiCheckboxCircleLine },
+  { label: 'Shipped', done: true, icon: RiTruckLine },
+  { label: 'Out for Delivery', done: false, icon: RiMapPinLine },
+  { label: 'Delivered', done: false, icon: RiCheckboxCircleLine },
+];
+
+export function DashboardPage() {
+  const { user } = useAppSelector((state) => state.auth);
+  const wishlistCount = useAppSelector((state) => state.wishlist?.items?.length ?? 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Page heading */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          Welcome back, {user?.name ?? 'Customer'}
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Here's a summary of your account activity.
+        </p>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Orders', value: '24', sub: '+3 this month', icon: RiShoppingBagLine },
+          { label: 'Total Spent', value: '₹8,240', sub: '↑ vs last month', icon: RiArrowUpLine },
+          { label: 'Wishlist Items', value: String(wishlistCount), sub: 'Saved products', icon: RiHeartLine },
+          { label: 'In Transit', value: '2', sub: 'Orders shipping', icon: RiTruckLine },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <s.icon size={18} className="text-slate-400 dark:text-slate-500" />
+              <span className="text-[10px] font-medium text-slate-400">{s.sub}</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Orders + Mini Tracker */}
+      <div className="grid lg:grid-cols-5 gap-6">
+        {/* Orders Table */}
+        <div className="lg:col-span-3 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Recent Orders</h3>
+            <Link
+              to="/orders"
+              className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400"
+            >
+              View all <RiArrowRightSLine size={14} />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800">
+                  {['Product', 'Qty', 'Amount', 'Status'].map((h) => (
+                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                {recentOrders.map((o) => (
+                  <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                    <td className="px-5 py-3">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{o.product}</p>
+                      <p className="text-[10px] text-slate-400">{o.id}</p>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{o.qty}</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">₹{o.amount}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-semibold capitalize ${statusColors[o.status]}`}>
+                        {o.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Delivery Timeline */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Live Tracking</h3>
+            <Link
+              to="/orders/ORD-001/track"
+              className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-0.5"
+            >
+              Full view <RiArrowRightSLine size={14} />
+            </Link>
+          </div>
+          <p className="text-[10px] text-slate-400 mb-5">ORD-001 · Organic Tomatoes</p>
+
+          <div className="space-y-1">
+            {trackingSteps.map((step, i) => {
+              const Icon = step.icon;
+              const isActive = !step.done && trackingSteps[i - 1]?.done;
+              return (
+                <div key={step.label} className="flex items-center gap-3">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${step.done
+                        ? 'bg-green-600 border-green-600 text-white'
+                        : isActive
+                          ? 'border-yellow-500 text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 bg-white dark:bg-gray-900'
+                      }`}
+                  >
+                    <Icon size={11} />
+                  </div>
+                  <span
+                    className={`text-xs ${step.done || isActive
+                        ? 'text-slate-700 dark:text-slate-200 font-medium'
+                        : 'text-slate-400 dark:text-slate-600'
+                      }`}
+                  >
+                    {step.label}
+                  </span>
+                  {isActive && (
+                    <span className="ml-auto text-[9px] font-bold uppercase text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded">
+                      Now
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Spending Chart */}
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Monthly Spend</h3>
+        <div className="h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={spendData}>
+              <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(v) => `₹${v}`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }}
+                formatter={(v) => [`₹${v}`, 'Spent']}
+              />
+              <Line type="monotone" dataKey="amount" stroke="#16a34a" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}

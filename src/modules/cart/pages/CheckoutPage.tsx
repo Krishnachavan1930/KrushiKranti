@@ -1,0 +1,240 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { CreditCard, Truck, Loader2, CheckCircle } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
+import { clearCart } from '../cartSlice';
+import toast from 'react-hot-toast';
+
+const checkoutSchema = z.object({
+    fullName: z.string().min(3, 'Full name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().min(10, 'Invalid phone number'),
+    address: z.string().min(10, 'Full address is required'),
+    city: z.string().min(2, 'City is required'),
+    zipCode: z.string().min(6, 'Invalid ZIP code'),
+    paymentMethod: z.enum(['card', 'upi', 'cod']),
+});
+
+type CheckoutFormData = z.infer<typeof checkoutSchema>;
+
+export function CheckoutPage() {
+    const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    const { items, subtotal } = useAppSelector((state) => state.cart);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<CheckoutFormData>({
+        resolver: zodResolver(checkoutSchema),
+        defaultValues: {
+            paymentMethod: 'card',
+        },
+    });
+
+    const onSubmit = async (_data: CheckoutFormData) => {
+        setIsProcessing(true);
+        try {
+            // Simulate payment process
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            setIsSuccess(true);
+            dispatch(clearCart());
+            toast.success('Order placed successfully!');
+            setTimeout(() => {
+                navigate('/orders');
+            }, 3000);
+        } catch (error) {
+            toast.error('Payment failed. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    if (items.length === 0 && !isSuccess) {
+        navigate('/cart');
+        return null;
+    }
+
+    if (isSuccess) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-soft-bg dark:bg-gray-900 px-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="card max-w-md w-full text-center py-12"
+                >
+                    <div className="flex justify-center mb-6">
+                        <CheckCircle className="text-primary-600" size={80} />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Order Confirmed!
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-8">
+                        Thank you for your purchase. Your order is being processed and will be shipped soon.
+                    </p>
+                    <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-xl mb-8">
+                        <p className="text-primary-700 dark:text-primary-400 font-medium">
+                            Order ID: #ORD-{Math.floor(Math.random() * 1000000)}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/orders')}
+                        className="btn-primary w-full py-3"
+                    >
+                        View My Orders
+                    </button>
+                </motion.div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-soft-bg dark:bg-gray-900 py-8">
+            <div className="container mx-auto px-4">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Checkout</h1>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Shipping Information */}
+                        <div className="card">
+                            <div className="flex items-center gap-2 mb-6">
+                                <Truck className="text-primary-600" size={24} />
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Shipping Information</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                                    <input {...register('fullName')} className="input-field" placeholder="John Doe" />
+                                    {errors.fullName && <p className="mt-1 text-sm text-red-500">{errors.fullName.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                    <input {...register('email')} type="email" className="input-field" placeholder="john@example.com" />
+                                    {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                                    <input {...register('phone')} className="input-field" placeholder="+91 9876543210" />
+                                    {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>}
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                                    <textarea {...register('address')} className="input-field h-24 resize-none" placeholder="123 Street Name, Area" />
+                                    {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                                    <input {...register('city')} className="input-field" placeholder="Mumbai" />
+                                    {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ZIP Code</label>
+                                    <input {...register('zipCode')} className="input-field" placeholder="400001" />
+                                    {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode.message}</p>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Payment Method */}
+                        <div className="card">
+                            <div className="flex items-center gap-2 mb-6">
+                                <CreditCard className="text-primary-600" size={24} />
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Payment Method</h2>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
+                                    <input {...register('paymentMethod')} type="radio" value="card" className="w-5 h-5 text-primary-600" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900 dark:text-white">Credit / Debit Card</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Secure payment via Stripe</p>
+                                    </div>
+                                </label>
+
+                                <label className="flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
+                                    <input {...register('paymentMethod')} type="radio" value="upi" className="w-5 h-5 text-primary-600" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900 dark:text-white">UPI / Net Banking</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Fast payment via Razorpay</p>
+                                    </div>
+                                </label>
+
+                                <label className="flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
+                                    <input {...register('paymentMethod')} type="radio" value="cod" className="w-5 h-5 text-primary-600" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900 dark:text-white">Cash on Delivery</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Pay when you receive</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-1">
+                        <div className="card sticky top-24">
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Order Summary</h2>
+
+                            <div className="space-y-4 mb-6">
+                                {items.map((item) => (
+                                    <div key={item.id} className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-md" />
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{item.name}</p>
+                                                <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="space-y-4 mb-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                                    <span>Subtotal</span>
+                                    <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                                    <span>Shipping</span>
+                                    <span className="text-primary-600">Free</span>
+                                </div>
+                                <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2">
+                                    <span>Total</span>
+                                    <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isProcessing}
+                                className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-2"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={24} />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>Complete Purchase</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}

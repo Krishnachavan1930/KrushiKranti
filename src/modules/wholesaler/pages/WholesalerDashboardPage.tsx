@@ -1,0 +1,190 @@
+import { Link } from 'react-router-dom';
+import {
+  RiArrowRightSLine,
+  RiArrowUpLine,
+  RiFileListLine,
+  RiShoppingBagLine,
+  RiStarLine,
+  RiArrowUpDownLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiTimeLine,
+  RiMessage2Line,
+  RiUserLine,
+} from 'react-icons/ri';
+import { useAppSelector } from '../../../shared/hooks';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const purchaseData = [
+  { month: 'Oct', amount: 45000 },
+  { month: 'Nov', amount: 62000 },
+  { month: 'Dec', amount: 51000 },
+  { month: 'Jan', amount: 78000 },
+  { month: 'Feb', amount: 95000 },
+  { month: 'Mar', amount: 82000 },
+];
+
+const bulkRequests = [
+  { id: 'BR-001', farmer: 'Rajiv Patel', product: 'Organic Tomatoes', qty: '500 kg', offeredPrice: '₹28/kg', status: 'negotiating' },
+  { id: 'BR-002', farmer: 'Anita Sharma', product: 'Basmati Rice', qty: '1000 kg', offeredPrice: '₹48/kg', status: 'approved' },
+  { id: 'BR-003', farmer: 'Suresh Kumar', product: 'Green Chillies', qty: '200 kg', offeredPrice: '₹22/kg', status: 'pending' },
+  { id: 'BR-004', farmer: 'Lata Devi', product: 'Toor Dal', qty: '300 kg', offeredPrice: '₹85/kg', status: 'rejected' },
+];
+
+const supplierRatings = [
+  { farmer: 'Rajiv Patel', product: 'Tomatoes', rating: 4.8, orders: 12 },
+  { farmer: 'Anita Sharma', product: 'Basmati Rice', rating: 4.6, orders: 8 },
+  { farmer: 'Suresh Kumar', product: 'Chillies', rating: 4.2, orders: 5 },
+  { farmer: 'Lata Devi', product: 'Toor Dal', rating: 3.9, orders: 3 },
+];
+
+const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+  pending: { label: 'Pending', cls: 'text-yellow-700 bg-yellow-50  border-yellow-200', icon: RiTimeLine },
+  negotiating: { label: 'Negotiating', cls: 'text-blue-700   bg-blue-50    border-blue-200', icon: RiArrowUpDownLine },
+  approved: { label: 'Approved', cls: 'text-green-700  bg-green-50   border-green-200', icon: RiCheckboxCircleLine },
+  rejected: { label: 'Rejected', cls: 'text-red-700    bg-red-50     border-red-200', icon: RiCloseCircleLine },
+};
+
+function StarBar({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <div
+          key={s}
+          className={`w-2.5 h-2.5 rounded-sm ${s <= Math.round(rating) ? 'bg-yellow-400' : 'bg-slate-200 dark:bg-slate-700'}`}
+        />
+      ))}
+      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-1 tabular-nums">{rating}</span>
+    </div>
+  );
+}
+
+export function WholesalerDashboardPage() {
+  const { stats } = useAppSelector((state) => state.wholesaler);
+
+  return (
+    <div className="space-y-6">
+      {/* Page heading */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Wholesaler Overview</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Manage bulk requests, negotiate pricing, and track suppliers.
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Inventory Value', value: `₹${stats.totalInventoryValue.toLocaleString('en-IN')}`, sub: 'Current stock', icon: RiArrowUpLine },
+          { label: 'Bulk Requests', value: String(stats.totalRequests), sub: 'Requests sent', icon: RiFileListLine },
+          { label: 'Inventory Items', value: String(stats.inventoryItems), sub: 'Product types', icon: RiShoppingBagLine },
+          { label: 'Avg Supplier Rating', value: '4.4', sub: 'Across suppliers', icon: RiStarLine },
+        ].map((s) => (
+          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-3">
+              <s.icon size={18} className="text-slate-400 dark:text-slate-500" />
+              <span className="text-[10px] font-medium text-slate-400">{s.sub}</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Purchase Chart */}
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Monthly Purchase Volume</h3>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={purchaseData}>
+              <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(v) => `₹${v / 1000}k`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }}
+                formatter={(v) => [`₹${v}`, 'Purchased']}
+              />
+              <Bar dataKey="amount" fill="#eab308" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bulk Requests Table + Supplier Ratings */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Bulk Requests */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Bulk Purchase Requests</h3>
+            <Link
+              to="/wholesaler/bulk-requests"
+              className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400"
+            >
+              All requests <RiArrowRightSLine size={14} />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800">
+                  {['ID', 'Farmer', 'Product', 'Qty', 'Offered Price', 'Status', ''].map((h) => (
+                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                {bulkRequests.map((req) => {
+                  const meta = STATUS_META[req.status];
+                  const Icon = meta.icon;
+                  return (
+                    <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <td className="px-5 py-3 text-xs text-slate-400 font-mono">{req.id}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-slate-900 dark:text-white">{req.farmer}</td>
+                      <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.product}</td>
+                      <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.qty}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">{req.offeredPrice}</td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
+                          <Icon size={10} />
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        {req.status === 'negotiating' && (
+                          <Link to="/wholesaler/chat" className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                            <RiMessage2Line size={12} /> Chat
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Supplier Ratings */}
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Supplier Ratings</h3>
+          </div>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
+            {supplierRatings.map((s) => (
+              <div key={s.farmer} className="px-5 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center shrink-0">
+                  <RiUserLine size={14} className="text-slate-500 dark:text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{s.farmer}</p>
+                  <p className="text-[10px] text-slate-400">{s.product} · {s.orders} orders</p>
+                  <StarBar rating={s.rating} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

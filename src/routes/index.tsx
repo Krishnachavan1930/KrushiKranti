@@ -10,7 +10,7 @@ import { FarmerLayout } from "../layouts/FarmerLayout";
 import { WholesalerLayout } from "../layouts/WholesalerLayout";
 import { UserLayout } from "../layouts/UserLayout";
 import { ProtectedRoute } from "../modules/auth/components";
-import { Loader2 } from "lucide-react";
+import { RiLoader4Line } from "react-icons/ri";
 import { ErrorBoundary } from "../shared/components/ErrorBoundary";
 
 const HomePage = lazy(() =>
@@ -39,6 +39,12 @@ const AboutPage = lazy(() =>
 const ContactPage = lazy(() =>
   import("./pages/ContactPage").then((m) => ({ default: m.ContactPage })),
 );
+const BlogPage = lazy(() =>
+  import("./pages/BlogPage").then((m) => ({ default: m.BlogPage })),
+);
+const BlogDetailPage = lazy(() =>
+  import("./pages/BlogDetailPage").then((m) => ({ default: m.BlogDetailPage })),
+);
 
 const LoginPage = lazy(() =>
   import("../modules/auth/pages/LoginPage").then((m) => ({
@@ -53,6 +59,11 @@ const RegisterPage = lazy(() =>
 const RoleSelectionPage = lazy(() =>
   import("../modules/auth/pages/RoleSelectionPage").then((m) => ({
     default: m.RoleSelectionPage,
+  })),
+);
+const VerifyOtpPage = lazy(() =>
+  import("../modules/auth/pages/VerifyOtpPage").then((m) => ({
+    default: m.VerifyOtpPage,
   })),
 );
 
@@ -112,6 +123,11 @@ const AddProductPage = lazy(() =>
 const EditProductPage = lazy(() =>
   import("../modules/farmer/pages/EditProductPage").then((m) => ({
     default: m.EditProductPage,
+  })),
+);
+const FarmerEarningsPage = lazy(() =>
+  import("../modules/farmer/pages/FarmerEarningsPage").then((m) => ({
+    default: m.FarmerEarningsPage,
   })),
 );
 
@@ -176,7 +192,7 @@ const ReadOnlyChatPage = lazy(() =>
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-soft-bg dark:bg-gray-900">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
+      <RiLoader4Line className="animate-spin text-green-600" size={48} />
     </div>
   );
 }
@@ -270,6 +286,22 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <ContactPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blog",
+        element: (
+          <SuspenseWrapper>
+            <BlogPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blog/:id",
+        element: (
+          <SuspenseWrapper>
+            <BlogDetailPage />
           </SuspenseWrapper>
         ),
       },
@@ -415,6 +447,14 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <ChatPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "earnings",
+        element: (
+          <SuspenseWrapper>
+            <FarmerEarningsPage />
           </SuspenseWrapper>
         ),
       },
@@ -572,6 +612,14 @@ const router = createBrowserRouter([
     element: (
       <SuspenseWrapper>
         <RegisterPage />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/verify-otp",
+    element: (
+      <SuspenseWrapper>
+        <VerifyOtpPage />
       </SuspenseWrapper>
     ),
   },

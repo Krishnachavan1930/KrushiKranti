@@ -10,6 +10,8 @@ import orderReducer from '../modules/orders/orderSlice';
 import chatReducer from '../modules/chat/chatSlice';
 import wishlistReducer from '../modules/wishlist/wishlistSlice';
 import notificationReducer from '../modules/notifications/notificationSlice';
+import blogReducer from '../modules/blog/blogSlice';
+import paymentReducer from '../modules/payment/paymentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +26,8 @@ export const store = configureStore({
     chat: chatReducer,
     wishlist: wishlistReducer,
     notifications: notificationReducer,
+    blog: blogReducer,
+    payment: paymentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

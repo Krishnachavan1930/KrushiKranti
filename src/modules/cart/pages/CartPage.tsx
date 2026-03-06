@@ -172,9 +172,11 @@ export function CartPage() {
                   </div>
                 </div>
 
-                <button className="w-full btn-primary py-3 text-lg">
-                  Proceed to Checkout
-                </button>
+                <Link to="/checkout" className="block w-full">
+                  <button className="w-full btn-primary py-3 text-lg">
+                    Proceed to Checkout
+                  </button>
+                </Link>
 
                 <Link
                   to="/products"

@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Package, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { fetchInventory } from '../wholesalerSlice';
 
 export function InventoryPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { inventory, isLoading } = useAppSelector((state) => state.wholesaler);
 
@@ -22,12 +24,12 @@ export function InventoryPage() {
   };
 
   const getStatusLabel = (status: string) => {
-    const labels = {
-      'in-stock': 'In Stock',
-      'low-stock': 'Low Stock',
-      'out-of-stock': 'Out of Stock',
+    const labels: Record<string, string> = {
+      'in-stock': t('wholesaler.status_in_stock'),
+      'low-stock': t('wholesaler.status_low_stock'),
+      'out-of-stock': t('wholesaler.status_out_of_stock'),
     };
-    return labels[status as keyof typeof labels] || status;
+    return labels[status] || status;
   };
 
   if (isLoading && inventory.length === 0) {
@@ -52,10 +54,10 @@ export function InventoryPage() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Inventory
+            {t('wholesaler.inventory_title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Track your purchased stock and inventory levels
+            {t('wholesaler.inventory_desc')}
           </p>
         </motion.div>
 
@@ -66,7 +68,7 @@ export function InventoryPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
           >
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Items</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('wholesaler.total_items')}</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {inventory.length}
             </p>
@@ -77,7 +79,7 @@ export function InventoryPage() {
             transition={{ delay: 0.1 }}
             className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
           >
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Value</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('wholesaler.total_value')}</p>
             <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
               ₹{totalValue.toLocaleString()}
             </p>
@@ -88,7 +90,7 @@ export function InventoryPage() {
             transition={{ delay: 0.2 }}
             className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
           >
-            <p className="text-sm text-gray-500 dark:text-gray-400">Alerts</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('wholesaler.alerts')}</p>
             <div className="flex items-center gap-2">
               {(lowStockItems > 0 || outOfStockItems > 0) && (
                 <AlertTriangle className="text-orange-500" size={20} />
@@ -96,7 +98,7 @@ export function InventoryPage() {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {lowStockItems + outOfStockItems}
               </p>
-              <span className="text-sm text-gray-500">items need attention</span>
+              <span className="text-sm text-gray-500">{t('wholesaler.items_need_attention')}</span>
             </div>
           </motion.div>
         </div>
@@ -110,10 +112,10 @@ export function InventoryPage() {
           >
             <Package className="mx-auto text-gray-400 mb-4" size={64} />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No inventory yet
+              {t('wholesaler.no_inventory_title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Your approved purchases will appear here
+              {t('wholesaler.no_inventory_desc')}
             </p>
           </motion.div>
         ) : (
@@ -124,22 +126,22 @@ export function InventoryPage() {
                 <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Product
+                      {t('wholesaler.col_product')}
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Supplier
+                      {t('wholesaler.col_supplier')}
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Quantity
+                      {t('wholesaler.col_quantity')}
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Purchase Price
+                      {t('wholesaler.col_purchase_price')}
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Purchase Date
+                      {t('wholesaler.col_purchase_date')}
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                      Status
+                      {t('wholesaler.col_status')}
                     </th>
                   </tr>
                 </thead>
@@ -169,13 +171,12 @@ export function InventoryPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`font-medium ${
-                            item.status === 'out-of-stock'
-                              ? 'text-red-600 dark:text-red-400'
-                              : item.status === 'low-stock'
+                          className={`font-medium ${item.status === 'out-of-stock'
+                            ? 'text-red-600 dark:text-red-400'
+                            : item.status === 'low-stock'
                               ? 'text-orange-600 dark:text-orange-400'
                               : 'text-gray-900 dark:text-white'
-                          }`}
+                            }`}
                         >
                           {item.quantity} {item.unit}
                         </span>
@@ -233,17 +234,16 @@ export function InventoryPage() {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                         <span>
-                          <span className="text-gray-500">Qty: </span>
+                          <span className="text-gray-500">{t('wholesaler.mobile_qty')}: </span>
                           <span
-                            className={`font-medium ${
-                              item.status !== 'in-stock' ? 'text-orange-600' : ''
-                            }`}
+                            className={`font-medium ${item.status !== 'in-stock' ? 'text-orange-600' : ''
+                              }`}
                           >
                             {item.quantity} {item.unit}
                           </span>
                         </span>
                         <span>
-                          <span className="text-gray-500">Value: </span>
+                          <span className="text-gray-500">{t('wholesaler.mobile_value')}: </span>
                           <span className="font-medium text-primary-600">
                             ₹{item.purchasePrice.toLocaleString()}
                           </span>

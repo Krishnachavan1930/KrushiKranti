@@ -1,229 +1,196 @@
 import type { Product, ProductCategory, ProductFilters, PaginatedResponse } from './types';
+import api from '../../services/api';
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Helper to extract error message from API errors
+const getErrorMessage = (error: unknown, defaultMsg: string): string => {
+  const err = error as { response?: { data?: { message?: string } }; message?: string };
+  return err.response?.data?.message || err.message || defaultMsg;
+};
 
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Fresh Tomatoes',
-    description: 'Farm-fresh tomatoes grown organically without pesticides. Perfect for salads, cooking, and making sauces.',
-    category: 'vegetables',
-    retailPrice: 40,
-    wholesalePrice: 28,
-    unit: 'kg',
-    stock: 500,
-    images: ['https://images.unsplash.com/photo-1546470427-227c7369b839?w=400'],
-    farmerId: '1',
-    farmerName: 'Ramesh Kumar',
-    location: 'Nashik, Maharashtra',
-    organic: true,
-    rating: 4.5,
-    reviewCount: 128,
-    createdAt: new Date().toISOString(),
-    reviews: [
-      {
-        id: 'rev1',
-        userId: 'u1',
-        userName: 'John Doe',
-        rating: 5,
-        comment: 'Very fresh and juicy tomatoes. Loved them!',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'rev2',
-        userId: 'u2',
-        userName: 'Jane Smith',
-        rating: 4,
-        comment: 'Good quality, but slightly expensive.',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Basmati Rice',
-    description: 'Premium quality aged Basmati rice with long grains and aromatic flavor.',
-    category: 'grains',
-    retailPrice: 120,
-    wholesalePrice: 95,
-    unit: 'kg',
-    stock: 1000,
-    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'],
-    farmerId: '2',
-    farmerName: 'Suresh Patel',
-    location: 'Karnal, Haryana',
-    organic: false,
-    rating: 4.8,
-    reviewCount: 256,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Alphonso Mangoes',
-    description: 'Sweet and juicy Alphonso mangoes from Ratnagiri. Known as the king of mangoes.',
-    category: 'fruits',
-    retailPrice: 800,
-    wholesalePrice: 600,
-    unit: 'dozen',
-    stock: 200,
-    images: ['https://images.unsplash.com/photo-1553279768-865429fa0078?w=400'],
-    farmerId: '3',
-    farmerName: 'Prakash Deshmukh',
-    location: 'Ratnagiri, Maharashtra',
-    organic: true,
-    rating: 4.9,
-    reviewCount: 512,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Green Chillies',
-    description: 'Fresh green chillies with the perfect balance of heat and flavor.',
-    category: 'vegetables',
-    retailPrice: 60,
-    wholesalePrice: 45,
-    unit: 'kg',
-    stock: 300,
-    images: ['https://images.unsplash.com/photo-1583119022894-919a68a3d0e3?w=400'],
-    farmerId: '1',
-    farmerName: 'Ramesh Kumar',
-    location: 'Guntur, Andhra Pradesh',
-    organic: false,
-    rating: 4.3,
-    reviewCount: 89,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '5',
-    name: 'Toor Dal',
-    description: 'High-quality split pigeon peas, perfect for making dal and sambhar.',
-    category: 'pulses',
-    retailPrice: 150,
-    wholesalePrice: 120,
-    unit: 'kg',
-    stock: 800,
-    images: ['https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400'],
-    farmerId: '4',
-    farmerName: 'Mahesh Yadav',
-    location: 'Indore, Madhya Pradesh',
-    organic: true,
-    rating: 4.6,
-    reviewCount: 167,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '6',
-    name: 'Fresh Milk',
-    description: 'Pure cow milk from grass-fed cows. Fresh and delivered daily.',
-    category: 'dairy',
-    retailPrice: 60,
-    wholesalePrice: 50,
-    unit: 'liter',
-    stock: 100,
-    images: ['https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400'],
-    farmerId: '5',
-    farmerName: 'Govind Dairy',
-    location: 'Anand, Gujarat',
-    organic: true,
-    rating: 4.7,
-    reviewCount: 342,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '7',
-    name: 'Turmeric Powder',
-    description: 'Pure turmeric powder with high curcumin content. Ground fresh from organic turmeric roots.',
-    category: 'spices',
-    retailPrice: 200,
-    wholesalePrice: 150,
-    unit: 'kg',
-    stock: 400,
-    images: ['https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400'],
-    farmerId: '6',
-    farmerName: 'Spice Valley Farm',
-    location: 'Erode, Tamil Nadu',
-    organic: true,
-    rating: 4.8,
-    reviewCount: 421,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '8',
-    name: 'Bananas',
-    description: 'Fresh yellow bananas, rich in potassium and naturally sweet.',
-    category: 'fruits',
-    retailPrice: 50,
-    wholesalePrice: 35,
-    unit: 'dozen',
-    stock: 600,
-    images: ['https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400'],
-    farmerId: '7',
-    farmerName: 'Banana Farms',
-    location: 'Jalgaon, Maharashtra',
-    organic: false,
-    rating: 4.4,
-    reviewCount: 198,
-    createdAt: new Date().toISOString(),
-  },
-];
+export interface CreateProductData {
+  name: string;
+  description: string;
+  category: ProductCategory;
+  retailPrice: number;
+  wholesalePrice: number;
+  unit: string;
+  stock: number;
+  images: string[];
+  location: string;
+  organic: boolean;
+}
+
+export interface UpdateProductData extends Partial<CreateProductData> {
+  id: string;
+}
 
 export const productService = {
+  /**
+   * Get paginated list of products with filters
+   */
   async getProducts(
     filters: ProductFilters = {},
     page: number = 1,
     limit: number = 8
   ): Promise<PaginatedResponse<Product>> {
-    await delay(800);
+    try {
+      const params = new URLSearchParams();
+      params.append('page', String(page - 1)); // Spring Boot uses 0-based pagination
+      params.append('size', String(limit));
+      
+      if (filters.category) params.append('category', filters.category);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.minPrice !== undefined) params.append('minPrice', String(filters.minPrice));
+      if (filters.maxPrice !== undefined) params.append('maxPrice', String(filters.maxPrice));
+      if (filters.organic !== undefined) params.append('organic', String(filters.organic));
 
-    let filtered = [...mockProducts];
+      const response = await api.get<{
+        data: {
+          content: Product[];
+          totalElements: number;
+          totalPages: number;
+          number: number;
+          size: number;
+        };
+      }>(`/v1/products?${params.toString()}`);
 
-    if (filters.category) {
-      filtered = filtered.filter((p) => p.category === filters.category);
+      const pageData = response.data.data;
+      return {
+        data: pageData.content,
+        total: pageData.totalElements,
+        page: pageData.number + 1, // Convert back to 1-based
+        limit: pageData.size,
+        totalPages: pageData.totalPages,
+      };
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch products'));
     }
-
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search) ||
-          p.description.toLowerCase().includes(search) ||
-          p.farmerName.toLowerCase().includes(search)
-      );
-    }
-
-    if (filters.organic !== undefined) {
-      filtered = filtered.filter((p) => p.organic === filters.organic);
-    }
-
-    if (filters.minPrice !== undefined) {
-      filtered = filtered.filter((p) => p.retailPrice >= filters.minPrice!);
-    }
-
-    if (filters.maxPrice !== undefined) {
-      filtered = filtered.filter((p) => p.retailPrice <= filters.maxPrice!);
-    }
-
-    const total = filtered.length;
-    const totalPages = Math.ceil(total / limit);
-    const start = (page - 1) * limit;
-    const data = filtered.slice(start, start + limit);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
   },
 
+  /**
+   * Get a single product by ID
+   */
   async getProductById(id: string): Promise<Product | null> {
-    await delay(600);
-    return mockProducts.find((p) => p.id === id) || null;
+    try {
+      const response = await api.get<{ data: Product }>(`/v1/products/${id}`);
+      return response.data.data;
+    } catch (error) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 404) {
+        return null;
+      }
+      throw new Error(getErrorMessage(error, 'Failed to fetch product'));
+    }
   },
 
+  /**
+   * Create a new product (Farmer only)
+   */
+  async createProduct(data: CreateProductData): Promise<Product> {
+    try {
+      const response = await api.post<{ data: Product }>('/v1/products', data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to create product'));
+    }
+  },
+
+  /**
+   * Update an existing product (Farmer only)
+   */
+  async updateProduct({ id, ...data }: UpdateProductData): Promise<Product> {
+    try {
+      const response = await api.put<{ data: Product }>(`/v1/products/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to update product'));
+    }
+  },
+
+  /**
+   * Delete a product (Farmer only)
+   */
+  async deleteProduct(id: string): Promise<void> {
+    try {
+      await api.delete(`/v1/products/${id}`);
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to delete product'));
+    }
+  },
+
+  /**
+   * Get products for a specific farmer
+   */
+  async getFarmerProducts(farmerId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> {
+    try {
+      const response = await api.get<{
+        data: {
+          content: Product[];
+          totalElements: number;
+          totalPages: number;
+          number: number;
+          size: number;
+        };
+      }>(`/v1/products/farmer/${farmerId}?page=${page - 1}&size=${limit}`);
+
+      const pageData = response.data.data;
+      return {
+        data: pageData.content,
+        total: pageData.totalElements,
+        page: pageData.number + 1,
+        limit: pageData.size,
+        totalPages: pageData.totalPages,
+      };
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch farmer products'));
+    }
+  },
+
+  /**
+   * Get my products (for logged-in farmer)
+   */
+  async getMyProducts(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> {
+    try {
+      const response = await api.get<{
+        data: {
+          content: Product[];
+          totalElements: number;
+          totalPages: number;
+          number: number;
+          size: number;
+        };
+      }>(`/v1/products/my-products?page=${page - 1}&size=${limit}`);
+
+      const pageData = response.data.data;
+      return {
+        data: pageData.content,
+        total: pageData.totalElements,
+        page: pageData.number + 1,
+        limit: pageData.size,
+        totalPages: pageData.totalPages,
+      };
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch your products'));
+    }
+  },
+
+  /**
+   * Get available product categories
+   */
   async getCategories(): Promise<ProductCategory[]> {
-    await delay(200);
-    return ['vegetables', 'fruits', 'grains', 'pulses', 'spices', 'dairy', 'other'];
+    try {
+      const response = await api.get<{ data: ProductCategory[] }>('/v1/products/categories');
+      return response.data.data;
+    } catch {
+      // Fallback to default categories if API fails
+      return ['vegetables', 'fruits', 'grains', 'pulses', 'spices', 'dairy', 'other'];
+    }
+  },
+
+  /**
+   * Search products by query
+   */
+  async searchProducts(query: string, page: number = 1, limit: number = 8): Promise<PaginatedResponse<Product>> {
+    return this.getProducts({ search: query }, page, limit);
   },
 };

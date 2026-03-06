@@ -14,7 +14,11 @@ import { useTranslation } from 'react-i18next';
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/\d/, 'Password must contain at least one digit'),
   confirmPassword: z.string(),
   role: z.enum(['farmer', 'wholesaler', 'user'] as const),
   phone: z.string().optional(),
@@ -31,12 +35,13 @@ export function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { registerLoading, error } = useAppSelector((state) => state.auth);
 
-  const roleOptions: { value: Role; label: string; description: string }[] = [
-    { value: 'farmer', label: t('dashboards.farmer.title'), description: 'Sell produce' },
-    { value: 'wholesaler', label: t('dashboards.wholesaler.title'), description: 'Buy wholesale' },
-    { value: 'user', label: t('common.products'), description: 'Buy retail' },
+  // Role options for signup - Admin is excluded (created manually in backend)
+  const roleOptions: { value: Exclude<Role, 'admin'>; label: string; description: string }[] = [
+    { value: 'user', label: t('auth.role_consumer', 'Consumer'), description: t('auth.role_consumer_desc', 'Buy products retail') },
+    { value: 'farmer', label: t('auth.role_farmer', 'Farmer'), description: t('auth.role_farmer_desc', 'Sell your produce') },
+    { value: 'wholesaler', label: t('auth.role_wholesaler', 'Wholesaler'), description: t('auth.role_wholesaler_desc', 'Buy in bulk') },
   ];
 
   const {
@@ -55,15 +60,8 @@ export function RegisterPage() {
     const { confirmPassword, ...registerData } = data;
     const result = await dispatch(registerUser(registerData));
     if (registerUser.fulfilled.match(result)) {
-      const user = result.payload.user;
-      toast.success(t('auth.create_account_success') || 'Account created successfully!');
-
-      switch (user.role) {
-        case 'admin': navigate('/admin/dashboard'); break;
-        case 'farmer': navigate('/farmer/dashboard'); break;
-        case 'wholesaler': navigate('/wholesaler/dashboard'); break;
-        default: navigate('/dashboard'); break;
-      }
+      toast.success(t('auth.otp_sent', 'OTP has been sent to your email!'));
+      navigate('/verify-otp');
     } else {
       toast.error(result.payload as string);
     }
@@ -147,6 +145,9 @@ export function RegisterPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-[10px] font-bold text-red-500 uppercase">{errors.password.message}</p>
+              )}
             </div>
 
             <div>
@@ -181,10 +182,10 @@ export function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={registerLoading}
               className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 text-xs tracking-widest uppercase"
             >
-              {isLoading ? (
+              {registerLoading ? (
                 <Loader2 className="animate-spin" size={16} />
               ) : (
                 <>

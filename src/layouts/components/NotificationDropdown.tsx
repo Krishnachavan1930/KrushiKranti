@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Package, CheckCircle, MessageSquare, Star, ShoppingBag } from 'lucide-react';
+import {
+    RiNotification3Line,
+    RiShoppingBag3Line,
+    RiCheckboxCircleLine,
+    RiBox3Line,
+    RiMessage3Line,
+    RiStarLine,
+} from 'react-icons/ri';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import {
     markAsRead,
@@ -9,11 +16,11 @@ import {
 } from '../../modules/notifications/notificationSlice';
 
 const typeIcon: Record<NotificationType, React.ElementType> = {
-    order_placed: ShoppingBag,
-    product_approved: CheckCircle,
-    bulk_request: Package,
-    price_negotiation: MessageSquare,
-    new_review: Star,
+    order_placed: RiShoppingBag3Line,
+    product_approved: RiCheckboxCircleLine,
+    bulk_request: RiBox3Line,
+    price_negotiation: RiMessage3Line,
+    new_review: RiStarLine,
 };
 
 const typeColor: Record<NotificationType, string> = {
@@ -55,9 +62,9 @@ export function NotificationDropdown() {
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 transition-none relative"
                 title="Notifications"
             >
-                <Bell size={18} />
+                <RiNotification3Line size={24} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 border border-white dark:border-gray-900">
+                    <span className="absolute top-0 right-0 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-900 shadow-sm leading-none z-10">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
@@ -91,7 +98,7 @@ export function NotificationDropdown() {
                     <div className="max-h-72 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
                         {notifications.length === 0 ? (
                             <div className="py-10 text-center">
-                                <Bell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                                <RiNotification3Line size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                                 <p className="text-xs text-slate-400">No notifications yet</p>
                             </div>
                         ) : (
@@ -103,8 +110,8 @@ export function NotificationDropdown() {
                                         key={notif.id}
                                         onClick={() => handleNotificationClick(notif.id, notif.link)}
                                         className={`w-full text-left p-3 flex gap-3 transition-colors ${notif.isRead
-                                                ? 'bg-white dark:bg-gray-900'
-                                                : 'bg-green-50/50 dark:bg-green-900/10'
+                                            ? 'bg-white dark:bg-gray-900'
+                                            : 'bg-green-50/50 dark:bg-green-900/10'
                                             }`}
                                     >
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>

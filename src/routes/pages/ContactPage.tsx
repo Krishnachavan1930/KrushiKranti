@@ -43,20 +43,24 @@ export function ContactPage() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-12">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest text-green-600 mb-3">
-            {t("contact.label")}
-          </p>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
-            {t("contact.title")}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg">
-            {t("contact.subtitle")}
-          </p>
+      {/* Hero Banner - Full Width */}
+      <section className="relative bg-[#f7f5ef] dark:bg-gray-950 overflow-hidden border-b border-slate-200/60 dark:border-slate-800">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 right-0 w-[40%] h-full bg-green-100/30 dark:bg-green-900/10 skew-x-[-12deg] translate-x-12 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-16 lg:py-24 relative z-10">
+          <div className="max-w-3xl text-center md:text-left">
+            <h1 className="text-4xl lg:text-6xl font-black text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
+              {t("contact.hero_title_1")} <span className="text-[#16a34a]">{t("contact.hero_grow")}</span> {t("contact.hero_title_2")} <br className="hidden lg:block" />
+              {t("contact.hero_title_3")} <span className="text-[#fbb72c]">{t("contact.hero_touch")}</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-lg lg:text-xl font-medium max-w-xl leading-relaxed">
+              {t("contact.subtitle")}
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Body */}
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 grid lg:grid-cols-3 gap-10">

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,12 +23,21 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Handle specific error cases
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+
+    if (status === 401) {
+      // Unauthorized - clear auth data and redirect
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    return Promise.reject(error);
+
+    // Create a more informative error
+    const enhancedError = new Error(message);
+    (enhancedError as Error & { status?: number }).status = status;
+    return Promise.reject(enhancedError);
   }
 );
 

@@ -9,15 +9,15 @@ import {
   RiPercentLine,
   RiCheckboxCircleLine,
   RiCloseLine,
-  RiAlertLine,
   RiTimeLine,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
-// ── Mock data ────────────────────────────────────────────────────────────────
 const revenueData = [
   { month: 'Oct', revenue: 85000 },
   { month: 'Nov', revenue: 92000 },
@@ -76,31 +76,55 @@ const ROLE_BADGE: Record<string, string> = {
   admin: 'text-purple-700 bg-purple-50 border-purple-200',
 };
 
+function nameToHue(name: string): number {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return Math.abs(hash) % 360;
+}
+
 export function AdminDashboardPage() {
+  const { t } = useTranslation();
+
+  const statCards = [
+    { label: t('admin.stat_revenue'), value: '₹7,62,000', sub: t('admin.stat_revenue_sub'), icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
+    { label: t('admin.stat_users'), value: '1,420', sub: t('admin.stat_users_sub'), icon: RiUserLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
+    { label: t('admin.stat_products'), value: '856', sub: t('admin.stat_products_sub'), icon: RiPlantLine, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600' },
+    { label: t('admin.stat_orders'), value: '2,990', sub: t('admin.stat_orders_sub'), icon: RiShoppingBagLine, iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-600' },
+  ];
+
+  const fraudHeaders = [
+    t('admin.col_id'), t('admin.col_alert_type'), t('admin.col_user'),
+    t('admin.col_severity'), t('admin.col_time'), t('admin.col_action'),
+  ];
+
+  const userHeaders = [
+    t('admin.col_name'), t('admin.col_role'), t('admin.col_joined'),
+    t('admin.col_status'), t('admin.col_action'),
+  ];
+
   return (
     <div className="space-y-6">
       {/* Page heading */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Platform Overview</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('admin.platform_overview')}</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Full visibility and management of the KrushiKranti platform.
+          {t('admin.platform_overview_desc')}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Revenue', value: '₹7,62,000', sub: '+18% this month', icon: RiArrowUpLine },
-          { label: 'Total Users', value: '1,420', sub: '+42 this month', icon: RiUserLine },
-          { label: 'Active Products', value: '856', sub: '+24 this week', icon: RiPlantLine },
-          { label: 'Total Orders', value: '2,990', sub: '+156 today', icon: RiShoppingBagLine },
-        ].map((s) => (
-          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
-              <s.icon size={18} className="text-slate-400 dark:text-slate-500" />
-              <span className="text-[10px] font-medium text-green-700 dark:text-green-400">{s.sub}</span>
+        {statCards.map((s) => (
+          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.iconBg}`}>
+                <s.icon size={20} className={s.iconColor} />
+              </div>
+              <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                <RiArrowUpLine size={10} />{s.sub}
+              </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
           </div>
         ))}
@@ -109,14 +133,14 @@ export function AdminDashboardPage() {
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Revenue (6 months)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">{t('admin.chart_revenue')}</h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }} formatter={(v) => [`₹${v}`, 'Revenue']} />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }} formatter={(v) => [`₹${v}`, t('admin.stat_revenue')]} />
                 <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -125,9 +149,9 @@ export function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">User Growth</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.chart_user_growth')}</h3>
             <div className="flex items-center gap-3">
-              {[{ label: 'Users', color: 'bg-blue-500' }, { label: 'Farmers', color: 'bg-green-600' }].map((l) => (
+              {[{ label: t('admin.legend_users'), color: 'bg-blue-500' }, { label: t('admin.legend_farmers'), color: 'bg-green-600' }].map((l) => (
                 <div key={l.label} className="flex items-center gap-1.5">
                   <div className={`w-2.5 h-2.5 rounded-sm ${l.color}`} />
                   <span className="text-[10px] text-slate-400 font-medium">{l.label}</span>
@@ -142,8 +166,8 @@ export function AdminDashboardPage() {
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
                 <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }} />
-                <Bar dataKey="users" fill="#3b82f6" radius={[2, 2, 0, 0]} name="Users" />
-                <Bar dataKey="farmers" fill="#16a34a" radius={[2, 2, 0, 0]} name="Farmers" />
+                <Bar dataKey="users" fill="#3b82f6" radius={[2, 2, 0, 0]} name={t('admin.legend_users')} />
+                <Bar dataKey="farmers" fill="#16a34a" radius={[2, 2, 0, 0]} name={t('admin.legend_farmers')} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -155,20 +179,20 @@ export function AdminDashboardPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <RiShieldLine size={16} className="text-red-500" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Fraud Detection Alerts</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.fraud_alerts')}</h3>
             <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
               {fraudAlerts.length}
             </span>
           </div>
           <Link to="/admin/fraud" className="flex items-center gap-0.5 text-xs font-medium text-red-600 dark:text-red-400">
-            View all <RiArrowRightSLine size={14} />
+            {t('common.view_all')} <RiArrowRightSLine size={14} />
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                {['ID', 'Alert Type', 'User', 'Severity', 'Time', 'Action'].map((h) => (
+                {fraudHeaders.map((h) => (
                   <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                 ))}
               </tr>
@@ -181,8 +205,8 @@ export function AdminDashboardPage() {
                   <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{a.user}</td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold ${a.severity === 'high'
-                        ? 'text-red-700 bg-red-50 border-red-200'
-                        : 'text-orange-700 bg-orange-50 border-orange-200'
+                      ? 'text-red-700 bg-red-50 border-red-200'
+                      : 'text-orange-700 bg-orange-50 border-orange-200'
                       }`}>
                       {a.severity.toUpperCase()}
                     </span>
@@ -190,7 +214,7 @@ export function AdminDashboardPage() {
                   <td className="px-5 py-3 text-xs text-slate-400">{a.time}</td>
                   <td className="px-5 py-3">
                     <button className="text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-2 py-1 rounded">
-                      Review
+                      {t('common.review')}
                     </button>
                   </td>
                 </tr>
@@ -207,10 +231,10 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <RiTimeLine size={14} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Pending Approvals</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.pending_approvals')}</h3>
             </div>
             <Link to="/admin/products" className="flex items-center gap-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400">
-              All <RiArrowRightSLine size={14} />
+              {t('common.all')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
@@ -238,10 +262,10 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <RiPercentLine size={14} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Commission Report</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.commission_report')}</h3>
             </div>
             <Link to="/admin/commissions" className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-              Details <RiArrowRightSLine size={14} />
+              {t('common.details')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
@@ -249,13 +273,13 @@ export function AdminDashboardPage() {
               <div key={c.category} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-white">{c.category}</p>
-                  <p className="text-[10px] text-slate-400">Rate: {c.rate}</p>
+                  <p className="text-[10px] text-slate-400">{t('common.rate_label')}: {c.rate}</p>
                 </div>
                 <span className="text-sm font-bold text-green-700 dark:text-green-400 tabular-nums">{c.earned}</span>
               </div>
             ))}
             <div className="px-5 py-3 flex items-center justify-between bg-slate-50 dark:bg-slate-800/40">
-              <p className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">Total (Mar 2026)</p>
+              <p className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">{t('admin.commission_total')}</p>
               <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">₹85,390</span>
             </div>
           </div>
@@ -264,9 +288,9 @@ export function AdminDashboardPage() {
         {/* Activity Logs */}
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Activity Logs</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.activity_logs')}</h3>
             <Link to="/admin/logs" className="flex items-center gap-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-              All <RiArrowRightSLine size={14} />
+              {t('common.all')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
@@ -289,17 +313,17 @@ export function AdminDashboardPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <RiUserLine size={16} className="text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Recent Users</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.recent_users')}</h3>
           </div>
           <Link to="/admin/users" className="flex items-center gap-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-            Manage all <RiArrowRightSLine size={14} />
+            {t('common.manage_all')} <RiArrowRightSLine size={14} />
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                {['Name', 'Role', 'Joined', 'Status', 'Action'].map((h) => (
+                {userHeaders.map((h) => (
                   <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                 ))}
               </tr>
@@ -308,8 +332,11 @@ export function AdminDashboardPage() {
               {manageUsers.map((u) => (
                 <tr key={u.name} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-white dark:ring-slate-900 shadow-sm shrink-0"
+                        style={{ background: `linear-gradient(135deg, hsl(${nameToHue(u.name)},55%,50%), hsl(${nameToHue(u.name)},65%,38%))` }}
+                      >
                         {u.name.charAt(0)}
                       </div>
                       <span className="text-sm font-medium text-slate-900 dark:text-white">{u.name}</span>
@@ -323,18 +350,18 @@ export function AdminDashboardPage() {
                   <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">{u.joined}</td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold ${u.status === 'active'
-                        ? 'text-green-700 bg-green-50 border-green-200'
-                        : 'text-red-700 bg-red-50 border-red-200'
+                      ? 'text-green-700 bg-green-50 border-green-200'
+                      : 'text-red-700 bg-red-50 border-red-200'
                       }`}>
-                      {u.status}
+                      {u.status === 'active' ? t('admin.status_active') : t('admin.status_banned')}
                     </span>
                   </td>
                   <td className="px-5 py-3">
                     <button className={`text-xs font-medium border px-2 py-1 rounded ${u.status === 'active'
-                        ? 'text-red-600 border-red-200 dark:border-red-800'
-                        : 'text-green-600 border-green-200 dark:border-green-800'
+                      ? 'text-red-600 border-red-200 dark:border-red-800'
+                      : 'text-green-600 border-green-200 dark:border-green-800'
                       }`}>
-                      {u.status === 'active' ? 'Ban' : 'Unban'}
+                      {u.status === 'active' ? t('common.ban') : t('common.unban')}
                     </button>
                   </td>
                 </tr>

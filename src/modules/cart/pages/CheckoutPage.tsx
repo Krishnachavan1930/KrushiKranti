@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CreditCard, Truck, Loader2, CheckCircle } from 'lucide-react';
+import { CreditCard, Truck, Loader2, CheckCircle, ShoppingBag } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { clearCart } from '../cartSlice';
 import toast from 'react-hot-toast';
+import { initializeRazorpayPayment } from '../../../services/PaymentService';
+import { createPaymentOrder, verifyPayment, resetPaymentState } from '../../payment/paymentSlice';
 
 const checkoutSchema = z.object({
     fullName: z.string().min(3, 'Full name is required'),
@@ -20,12 +22,12 @@ const checkoutSchema = z.object({
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
-
 export function CheckoutPage() {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { items, subtotal } = useAppSelector((state) => state.cart);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const { user } = useAppSelector((state) => state.auth);
+    const { paymentStatus, paymentLoading, orderId } = useAppSelector((state) => state.payment);
     const [isSuccess, setIsSuccess] = useState(false);
 
     const {
@@ -35,25 +37,59 @@ export function CheckoutPage() {
     } = useForm<CheckoutFormData>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
-            paymentMethod: 'card',
+            paymentMethod: 'upi',
+            fullName: user?.name || '',
+            email: user?.email || '',
         },
     });
 
-    const onSubmit = async (_data: CheckoutFormData) => {
-        setIsProcessing(true);
-        try {
-            // Simulate payment process
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+    const onSubmit = async (data: CheckoutFormData) => {
+        if (data.paymentMethod === 'cod') {
             setIsSuccess(true);
             dispatch(clearCart());
             toast.success('Order placed successfully!');
-            setTimeout(() => {
-                navigate('/orders');
-            }, 3000);
-        } catch (error) {
-            toast.error('Payment failed. Please try again.');
-        } finally {
-            setIsProcessing(false);
+            return;
+        }
+
+        // Handle Razorpay Payment
+        try {
+            const orderResult = await dispatch(createPaymentOrder(subtotal)).unwrap();
+            const rzpKey = import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_your_key';
+
+            await initializeRazorpayPayment({
+                key: rzpKey,
+                amount: subtotal * 100,
+                currency: 'INR',
+                name: 'KrushiKranti',
+                description: 'Order Payment',
+                order_id: orderResult.orderId,
+                prefill: {
+                    name: data.fullName,
+                    email: data.email,
+                    contact: data.phone,
+                },
+                theme: {
+                    color: '#16a34a',
+                },
+                handler: async (response: any) => {
+                    const verificationResult = await dispatch(verifyPayment(response)).unwrap();
+                    if (verificationResult.success) {
+                        setIsSuccess(true);
+                        dispatch(clearCart());
+                        // We keep the orderId in state for the success screen
+                        toast.success('Payment successful and order placed!');
+                    }
+                },
+                modal: {
+                    ondismiss: () => {
+                        dispatch(resetPaymentState());
+                        toast.error('Payment cancelled');
+                    }
+                }
+            });
+        } catch (error: any) {
+            toast.error(error || 'Payment initialization failed');
+            dispatch(resetPaymentState());
         }
     };
 
@@ -81,7 +117,7 @@ export function CheckoutPage() {
                     </p>
                     <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-xl mb-8">
                         <p className="text-primary-700 dark:text-primary-400 font-medium">
-                            Order ID: #ORD-{Math.floor(Math.random() * 1000000)}
+                            Order ID: {orderId || `#ORD-${Math.floor(Math.random() * 1000000)}`}
                         </p>
                     </div>
                     <button
@@ -98,7 +134,16 @@ export function CheckoutPage() {
     return (
         <div className="min-h-screen bg-soft-bg dark:bg-gray-900 py-8">
             <div className="container mx-auto px-4">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Checkout</h1>
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Checkout</h1>
+                    <button
+                        onClick={() => navigate('/cart')}
+                        className="text-primary-600 dark:text-primary-400 font-semibold flex items-center gap-2 hover:underline"
+                    >
+                        <ShoppingBag size={20} />
+                        Back to Cart
+                    </button>
+                </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
@@ -219,10 +264,10 @@ export function CheckoutPage() {
 
                             <button
                                 type="submit"
-                                disabled={isProcessing}
+                                disabled={paymentLoading}
                                 className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-2"
                             >
-                                {isProcessing ? (
+                                {paymentLoading ? (
                                     <>
                                         <Loader2 className="animate-spin" size={24} />
                                         Processing...

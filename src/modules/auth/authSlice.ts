@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { User, LoginCredentials, RegisterData, Role } from './types';
+import type { User, LoginCredentials, RegisterData, Role, OtpVerifyRequest, ResendOtpRequest } from './types';
 import { authService } from './authService';
 
 interface AuthState {
@@ -9,6 +9,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  // OTP verification states
+  registerLoading: boolean;
+  otpLoading: boolean;
+  otpVerified: boolean;
+  otpError: string | null;
+  pendingVerificationEmail: string | null;
 }
 
 const isDev = import.meta.env.MODE === 'development';
@@ -33,7 +39,13 @@ const getInitialAuthState = (): AuthState => {
       role: 'admin',
       isAuthenticated: true,
       isLoading: false,
-      error: null
+      error: null,
+      // OTP verification states
+      registerLoading: false,
+      otpLoading: false,
+      otpVerified: false,
+      otpError: null,
+      pendingVerificationEmail: null,
     };
   }
 
@@ -44,6 +56,12 @@ const getInitialAuthState = (): AuthState => {
     isAuthenticated: !!storedToken,
     isLoading: false,
     error: null,
+    // OTP verification states
+    registerLoading: false,
+    otpLoading: false,
+    otpVerified: false,
+    otpError: null,
+    pendingVerificationEmail: null,
   };
 };
 
@@ -53,8 +71,8 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
+      // authService.login() already stores auth data in localStorage
       const response = await authService.login(credentials);
-      authService.setAuthData(response.token, response.user);
       return response;
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -66,8 +84,8 @@ export const googleAuth = createAsyncThunk(
   'auth/google',
   async (token: string, { rejectWithValue }) => {
     try {
+      // authService.googleLogin() already stores auth data in localStorage
       const response = await authService.googleLogin(token);
-      authService.setAuthData(response.token, response.user);
       return response;
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -80,7 +98,30 @@ export const register = createAsyncThunk(
   async (data: RegisterData, { rejectWithValue }) => {
     try {
       const response = await authService.register(data);
-      authService.setAuthData(response.token, response.user);
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const verifyOtp = createAsyncThunk(
+  'auth/verifyOtp',
+  async (data: OtpVerifyRequest, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyOtp(data);
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const resendOtp = createAsyncThunk(
+  'auth/resendOtp',
+  async (data: ResendOtpRequest, { rejectWithValue }) => {
+    try {
+      const response = await authService.resendOtp(data);
       return response;
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -98,6 +139,18 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearOtpError: (state) => {
+      state.otpError = null;
+    },
+    setPendingVerificationEmail: (state, action: PayloadAction<string | null>) => {
+      state.pendingVerificationEmail = action.payload;
+    },
+    resetOtpState: (state) => {
+      state.otpLoading = false;
+      state.otpVerified = false;
+      state.otpError = null;
+      state.pendingVerificationEmail = null;
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
@@ -127,19 +180,42 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(register.pending, (state) => {
-        state.isLoading = true;
+        state.registerLoading = true;
         state.error = null;
       })
       .addCase(register.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.role = action.payload.user.role;
+        state.registerLoading = false;
+        state.pendingVerificationEmail = action.payload.email;
       })
       .addCase(register.rejected, (state, action) => {
-        state.isLoading = false;
+        state.registerLoading = false;
         state.error = action.payload as string;
+      })
+      // OTP Verification
+      .addCase(verifyOtp.pending, (state) => {
+        state.otpLoading = true;
+        state.otpError = null;
+      })
+      .addCase(verifyOtp.fulfilled, (state) => {
+        state.otpLoading = false;
+        state.otpVerified = true;
+        state.pendingVerificationEmail = null;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.otpLoading = false;
+        state.otpError = action.payload as string;
+      })
+      // Resend OTP
+      .addCase(resendOtp.pending, (state) => {
+        state.otpLoading = true;
+        state.otpError = null;
+      })
+      .addCase(resendOtp.fulfilled, (state) => {
+        state.otpLoading = false;
+      })
+      .addCase(resendOtp.rejected, (state, action) => {
+        state.otpLoading = false;
+        state.otpError = action.payload as string;
       })
       .addCase(googleAuth.pending, (state) => {
         state.isLoading = true;
@@ -165,5 +241,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser, setToken } = authSlice.actions;
+export const { clearError, clearOtpError, setPendingVerificationEmail, resetOtpState, setUser, setToken } = authSlice.actions;
 export default authSlice.reducer;

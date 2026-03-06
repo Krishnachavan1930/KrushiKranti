@@ -6,23 +6,26 @@ import {
     RiUserLine,
     RiStarLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import { BaseDashboardLayout } from './BaseDashboardLayout';
 
 export function WholesalerLayout() {
+    const { t } = useTranslation();
+
     const menuItems = [
-        { to: '/wholesaler/dashboard', label: 'Dashboard', icon: RiDashboardLine },
-        { to: '/wholesaler/bulk-requests', label: 'Bulk Requests', icon: RiFileListLine },
-        { to: '/wholesaler/inventory', label: 'Inventory', icon: RiStoreLine },
-        { to: '/wholesaler/chat', label: 'Chat', icon: RiMessage2Line },
-        { to: '/wholesaler/ratings', label: 'Supplier Ratings', icon: RiStarLine },
-        { to: '/wholesaler/profile', label: 'Profile', icon: RiUserLine },
+        { to: '/wholesaler/dashboard', label: t('wholesaler.nav.dashboard'), icon: RiDashboardLine },
+        { to: '/wholesaler/bulk-requests', label: t('wholesaler.nav.bulk_requests'), icon: RiFileListLine },
+        { to: '/wholesaler/inventory', label: t('wholesaler.nav.inventory'), icon: RiStoreLine },
+        { to: '/wholesaler/chat', label: t('wholesaler.nav.chat'), icon: RiMessage2Line },
+        { to: '/wholesaler/ratings', label: t('wholesaler.nav.supplier_ratings'), icon: RiStarLine },
+        { to: '/wholesaler/profile', label: t('wholesaler.nav.profile'), icon: RiUserLine },
     ];
 
     return (
         <BaseDashboardLayout
             menuItems={menuItems}
-            title="Wholesaler Portal"
-            roleLabel="Wholesaler"
+            title={t('wholesaler.portal')}
+            roleLabel={t('wholesaler.role_label')}
         />
     );
 }

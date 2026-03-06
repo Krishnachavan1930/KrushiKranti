@@ -1,4 +1,5 @@
 import { Heart, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { removeFromWishlist } from '../wishlistSlice';
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast';
 import type { Product } from '../../product/types';
 
 export function WishlistPage() {
+    const { t } = useTranslation();
     const dispatch = useAppDispatch();
 
     // Safely select wishlist items — guard against malformed localStorage state
@@ -60,17 +62,17 @@ export function WishlistPage() {
                         <Heart size={36} className="text-red-400" />
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                        Your wishlist is empty
+                        {t('wishlist.empty_title')}
                     </h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
-                        Save products you&apos;re interested in and come back to them anytime.
+                        {t('wishlist.empty_desc')}
                     </p>
                     <Link
                         to="/products"
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg"
                     >
                         <ArrowLeft size={16} />
-                        Browse Products
+                        {t('wishlist.browse_products')}
                     </Link>
                 </div>
             </div>
@@ -86,10 +88,10 @@ export function WishlistPage() {
                     <div className="flex items-center gap-3">
                         <Heart size={22} className="text-red-500 fill-red-500" />
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                            My Wishlist
+                            {t('wishlist.title')}
                         </h1>
                         <span className="text-sm text-slate-400 font-normal">
-                            ({items.length} {items.length === 1 ? 'item' : 'items'})
+                            ({items.length} {items.length === 1 ? t('wishlist.item') : t('wishlist.items')})
                         </span>
                     </div>
                 </div>
@@ -130,7 +132,7 @@ export function WishlistPage() {
                                     </div>
                                     {product.organic && (
                                         <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-widest bg-green-600 text-white px-2 py-0.5 rounded-sm">
-                                            Organic
+                                            {t('products.filter_organic')}
                                         </span>
                                     )}
                                 </Link>
@@ -165,7 +167,7 @@ export function WishlistPage() {
                                             className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg bg-green-600 text-white disabled:opacity-60"
                                         >
                                             <ShoppingCart size={14} />
-                                            {isInCart ? 'In Cart' : 'Add to Cart'}
+                                            {isInCart ? t('cart.in_cart') : t('cart.add_to_cart')}
                                         </button>
                                         <button
                                             onClick={() => handleRemove(product.id, product.name)}

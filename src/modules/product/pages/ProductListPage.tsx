@@ -5,6 +5,7 @@ import { ProductCard } from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import { useTranslation } from 'react-i18next';
 import type { ProductCategory } from '../types';
+import fruits from '../../../assets/fruits.png';
 
 export function ProductListPage() {
   const { t } = useTranslation();
@@ -59,17 +60,17 @@ export function ProductListPage() {
     <div>
       {/* Category section */}
       <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Category</p>
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">{t('products.category_label')}</p>
         <ul className="space-y-0.5">
           <li>
             <button
               onClick={() => handleCategoryChange('')}
               className={`w-full text-left px-2 py-1.5 text-sm rounded transition-none ${!filters.category
-                  ? 'text-green-700 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20'
-                  : 'text-slate-600 dark:text-slate-400'
+                ? 'text-green-700 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20'
+                : 'text-slate-600 dark:text-slate-400'
                 }`}
             >
-              All Products
+              {t('products.all_products')}
             </button>
           </li>
           {categories.map((cat) => (
@@ -77,8 +78,8 @@ export function ProductListPage() {
               <button
                 onClick={() => handleCategoryChange(cat)}
                 className={`w-full text-left px-2 py-1.5 text-sm rounded capitalize transition-none ${filters.category === cat
-                    ? 'text-green-700 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20'
-                    : 'text-slate-600 dark:text-slate-400'
+                  ? 'text-green-700 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20'
+                  : 'text-slate-600 dark:text-slate-400'
                   }`}
               >
                 {categoryLabels[cat]}
@@ -90,15 +91,15 @@ export function ProductListPage() {
 
       {/* Organic section */}
       <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Type</p>
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">{t('products.type_label')}</p>
         <label className="flex items-center gap-3 cursor-pointer px-2 py-1.5">
           <div
             role="checkbox"
             aria-checked={!!filters.organic}
             onClick={() => dispatch(setFilters({ organic: filters.organic ? undefined : true }))}
             className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 cursor-pointer ${filters.organic
-                ? 'bg-green-600 border-green-600'
-                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900'
+              ? 'bg-green-600 border-green-600'
+              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900'
               }`}
           >
             {filters.organic && (
@@ -107,7 +108,7 @@ export function ProductListPage() {
               </svg>
             )}
           </div>
-          <span className="text-sm text-slate-600 dark:text-slate-400">Organic only</span>
+          <span className="text-sm text-slate-600 dark:text-slate-400">{t('products.organic_only')}</span>
         </label>
       </div>
 
@@ -117,7 +118,7 @@ export function ProductListPage() {
           onClick={handleClearFilters}
           className="text-xs text-slate-400 dark:text-slate-500 px-2 py-1 underline underline-offset-2"
         >
-          Clear all filters
+          {t('products.clear_all_filters')}
         </button>
       )}
     </div>
@@ -125,25 +126,57 @@ export function ProductListPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950">
-      {/* Page header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {t('products.title')}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {pagination.total > 0
-              ? `${pagination.total} products available`
-              : t('products.subtitle')}
-          </p>
+      {/* Refined Page Header Banner - Full Width */}
+      <div className="relative bg-[#f7f5ef] dark:bg-gray-950 overflow-hidden border-b border-slate-200/60 dark:border-slate-800">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 right-0 w-[40%] h-full bg-green-100/30 dark:bg-green-900/10 skew-x-[-12deg] translate-x-12 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-8 lg:py-14 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="max-w-xl text-center md:text-left">
+              <h1 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white mb-4 leading-tight tracking-tight">
+                {t('products.hero_title_1')} <span className="text-primary-600">{t('products.hero_harvests')}</span> <br className="hidden lg:block" /> {t('products.hero_title_2')}
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 text-base lg:text-lg font-medium max-w-md leading-relaxed">
+                {t('products.hero_subtitle')}
+              </p>
+            </div>
+
+            {/* Right side: Fruit Image */}
+            <div className="relative w-full md:w-1/2 lg:w-2/5 flex justify-center md:justify-end pointer-events-none">
+              <div className="relative group">
+                <div className="absolute inset-x-0 bottom-0 top-1/2 bg-yellow-400/20 blur-[50px] rounded-full scale-125" />
+                <img
+                  src={fruits}
+                  alt="Harvest Fruits"
+                  className="relative z-10 w-full max-w-[320px] object-contain drop-shadow-[0_15px_35px_rgba(0,0,0,0.1)] transition-all duration-1000 group-hover:scale-105"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modern Control Bar */}
+      <div className="sticky top-0 z-30 px-4 md:px-8 py-6 bg-[#F8FAFC]/80 dark:bg-gray-950/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white hidden md:block">
+              {t('products.fresh_products')}
+            </h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full shrink-0">
+              {pagination.total} {t('products.items_label')}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Search */}
-            <div className="relative flex-1 max-w-lg">
+            <div className="relative flex-1 md:w-80">
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                 width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2"
+                stroke="currentColor" strokeWidth="2.5"
               >
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
               </svg>
@@ -152,20 +185,18 @@ export function ProductListPage() {
                 placeholder={t('products.search_placeholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-900 dark:text-white placeholder-slate-400 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm bg-white dark:bg-gray-900 text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 transition-all shadow-sm"
               />
             </div>
 
-            {/* Mobile: filter toggle */}
+            {/* Mobile filter toggle */}
             <button
-              className="lg:hidden flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-gray-900"
+              className="lg:hidden flex items-center justify-center w-12 h-12 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 bg-white dark:bg-gray-900 shadow-sm transition-all active:scale-95"
               onClick={() => setMobileSidebarOpen(true)}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" y1="6" x2="16" y2="6" /><line x1="8" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="16" y2="18" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
               </svg>
-              Filters
-              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-green-600" />}
             </button>
           </div>
         </div>
@@ -177,7 +208,7 @@ export function ProductListPage() {
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileSidebarOpen(false)} />
           <div className="relative w-64 bg-white dark:bg-gray-900 h-full overflow-y-auto p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">Filters</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">{t('products.filters_label')}</span>
               <button onClick={() => setMobileSidebarOpen(false)} className="text-slate-400">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -206,9 +237,9 @@ export function ProductListPage() {
 
           {!isLoading && products.length > 0 && (
             <p className="text-xs text-slate-400 mb-5">
-              Showing <strong className="text-slate-600 dark:text-slate-300">{products.length}</strong> of {pagination.total} products
+              {t('products.showing')} <strong className="text-slate-600 dark:text-slate-300">{products.length}</strong> {t('products.of')} {pagination.total} {t('products.products_text')}
               {filters.category && (
-                <> · filtered by <strong className="text-green-600">{categoryLabels[filters.category as ProductCategory]}</strong></>
+                <> · {t('products.filtered_by')} <strong className="text-green-600">{categoryLabels[filters.category as ProductCategory]}</strong></>
               )}
             </p>
           )}
@@ -237,7 +268,7 @@ export function ProductListPage() {
                   onClick={handleClearFilters}
                   className="px-5 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg"
                 >
-                  Clear Filters
+                  {t('products.clear_filters')}
                 </button>
               )}
             </div>
@@ -258,8 +289,8 @@ export function ProductListPage() {
                   key={i + 1}
                   onClick={() => handlePageChange(i + 1)}
                   className={`w-9 h-9 text-sm font-semibold rounded-lg ${pagination.page === i + 1
-                      ? 'bg-green-600 text-white'
-                      : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-400'
+                    ? 'bg-green-600 text-white'
+                    : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-400'
                     }`}
                 >
                   {i + 1}

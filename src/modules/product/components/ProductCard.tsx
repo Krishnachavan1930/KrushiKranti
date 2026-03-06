@@ -6,6 +6,7 @@ import { addItem } from '../../cart/cartSlice';
 import type { RootState } from '../../../app/store';
 import toast from 'react-hot-toast';
 import { useProductLocale } from '../hooks/useProductLocale';
+import { useTranslation } from 'react-i18next';
 
 interface ProductCardProps {
   product: Product;
@@ -33,6 +34,7 @@ function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state: RootState) => state.cart.items);
   const isInCart = cartItems.some((item) => item.productId === product.id);
@@ -60,7 +62,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex flex-col">
       {/* Image */}
       <Link to={`/products/${product.id}`} className="block relative">
         <div className="h-52 bg-slate-50 dark:bg-slate-800 overflow-hidden">
@@ -75,17 +77,17 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {product.organic && (
             <span className="text-[10px] font-bold uppercase tracking-widest bg-green-600 text-white px-2 py-0.5 rounded-sm">
-              🌿 Organic
+              {t('products.organic_badge')}
             </span>
           )}
           {isLowStock && !isOutOfStock && (
             <span className="text-[10px] font-bold uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-sm">
-              Low Stock
+              {t('products.low_stock_badge')}
             </span>
           )}
           {isOutOfStock && (
             <span className="text-[10px] font-bold uppercase tracking-widest bg-slate-700 text-white px-2 py-0.5 rounded-sm">
-              Sold Out
+              {t('products.sold_out_badge')}
             </span>
           )}
         </div>
@@ -136,7 +138,7 @@ export function ProductCard({ product }: ProductCardProps) {
             {!isOutOfStock && product.stock < 200 && (
               <p className="text-[10px] text-slate-400 text-right leading-tight">
                 {product.stock} {product.unit}<br />
-                <span className="text-slate-300 dark:text-slate-600">left</span>
+                <span className="text-slate-300 dark:text-slate-600">{t('products.left_label')}</span>
               </p>
             )}
           </div>
@@ -153,10 +155,10 @@ export function ProductCard({ product }: ProductCardProps) {
               : 'bg-green-600 text-white'
             }`}
         >
-          {isOutOfStock ? 'Out of Stock' : isInCart ? (
-            <><Check size={14} /> Added to Cart</>
+          {isOutOfStock ? t('products.out_of_stock_btn') : isInCart ? (
+            <><Check size={14} /> {t('products.added_to_cart')}</>
           ) : (
-            <><ShoppingCart size={14} /> Add to Cart</>
+            <><ShoppingCart size={14} /> {t('products.add_to_cart')}</>
           )}
         </button>
       </div>

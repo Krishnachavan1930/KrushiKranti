@@ -5,22 +5,25 @@ import {
     RiUserLine,
     RiTruckLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import { BaseDashboardLayout } from './BaseDashboardLayout';
 
 export function UserLayout() {
+    const { t } = useTranslation();
+
     const menuItems = [
-        { to: '/dashboard', label: 'Dashboard', icon: RiDashboardLine },
-        { to: '/orders', label: 'My Orders', icon: RiShoppingBagLine },
-        { to: '/orders/ORD-001/track', label: 'Track Delivery', icon: RiTruckLine },
-        { to: '/wishlist', label: 'Wishlist', icon: RiHeartLine },
-        { to: '/profile', label: 'Profile', icon: RiUserLine },
+        { to: '/dashboard', label: t('user_dashboard.nav.dashboard'), icon: RiDashboardLine },
+        { to: '/orders', label: t('user_dashboard.nav.orders'), icon: RiShoppingBagLine },
+        { to: '/orders/ORD-001/track', label: t('user_dashboard.nav.track'), icon: RiTruckLine },
+        { to: '/wishlist', label: t('user_dashboard.nav.wishlist'), icon: RiHeartLine },
+        { to: '/profile', label: t('user_dashboard.nav.profile'), icon: RiUserLine },
     ];
 
     return (
         <BaseDashboardLayout
             menuItems={menuItems}
-            title="My Account"
-            roleLabel="Customer"
+            title={t('layout.user_account')}
+            roleLabel={t('layout.user_role')}
         />
     );
 }

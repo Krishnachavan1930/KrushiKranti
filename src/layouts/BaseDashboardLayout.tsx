@@ -7,6 +7,7 @@ import {
     RiSunLine,
     RiMoonLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import { UserMenu } from './components/UserMenu';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { LanguageSwitcher } from '../shared/components/LanguageSwitcher';
@@ -26,6 +27,7 @@ interface BaseDashboardLayoutProps {
 }
 
 export function BaseDashboardLayout({ menuItems, title, roleLabel }: BaseDashboardLayoutProps) {
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
     const dispatch = useAppDispatch();
@@ -33,7 +35,7 @@ export function BaseDashboardLayout({ menuItems, title, roleLabel }: BaseDashboa
 
     const currentPage = menuItems.find((i) =>
         location.pathname === i.to || location.pathname.startsWith(i.to + '/')
-    )?.label || 'Overview';
+    )?.label || t('layout.overview');
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-gray-950 overflow-hidden font-sans">
@@ -57,10 +59,7 @@ export function BaseDashboardLayout({ menuItems, title, roleLabel }: BaseDashboa
                 {/* Logo */}
                 <div className="h-14 shrink-0 flex items-center justify-between px-5 border-b border-slate-200 dark:border-slate-800">
                     <Link to="/" className="flex items-center gap-2">
-                        <span className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
-                            <RiStoreLine size={14} className="text-white" />
-                        </span>
-                        <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                        <span className="text-lg font-black text-primary-600 dark:text-primary-400 tracking-tight">
                             KrushiKranti
                         </span>
                     </Link>
@@ -117,7 +116,7 @@ export function BaseDashboardLayout({ menuItems, title, roleLabel }: BaseDashboa
                         className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                         <RiStoreLine size={16} />
-                        <span>Storefront</span>
+                        <span>{t('wholesaler.storefront')}</span>
                     </Link>
                 </div>
             </aside>
@@ -168,7 +167,7 @@ export function BaseDashboardLayout({ menuItems, title, roleLabel }: BaseDashboa
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
-                    <div className="p-6 max-w-screen-xl mx-auto">
+                    <div className="px-6 py-6 w-full">
                         <Outlet />
                     </div>
                 </main>

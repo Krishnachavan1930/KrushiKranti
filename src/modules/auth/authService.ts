@@ -1,113 +1,100 @@
-import type { LoginCredentials, RegisterData, AuthResponse, User } from './types';
+import type { 
+  LoginCredentials, 
+  RegisterData, 
+  AuthResponse, 
+  User,
+  RegisterResponse,
+  OtpVerifyRequest,
+  OtpVerifyResponse,
+  ResendOtpRequest,
+  ResendOtpResponse
+} from './types';
 import { googleLogout } from '@react-oauth/google';
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'farmer@example.com',
-    name: 'Ramesh Kumar',
-    role: 'farmer',
-    phone: '+91 9876543210',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    email: 'wholesaler@example.com',
-    name: 'Suresh Traders',
-    role: 'wholesaler',
-    phone: '+91 9876543211',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    email: 'admin@example.com',
-    name: 'Admin User',
-    role: 'admin',
-    phone: '+91 9876543212',
-    createdAt: new Date().toISOString(),
-  },
-];
+import api from '../../services/api';
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    await delay(1000);
-
-    const user = mockUsers.find(u => u.email === credentials.email);
-
-    if (!user || credentials.password !== 'password123') {
-      throw new Error('Invalid email or password');
+    try {
+      const response = await api.post<{ data: AuthResponse }>('/v1/auth/login', credentials);
+      const authData = response.data.data;
+      // Store auth data on successful login
+      this.setAuthData(authData.token, authData.user);
+      return authData;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      throw new Error(err.response?.data?.message || err.message || 'Login failed');
     }
-
-    const token = `mock-jwt-token-${user.id}-${Date.now()}`;
-
-    return { user, token };
   },
 
-  async register(data: RegisterData): Promise<AuthResponse> {
-    await delay(1000);
-
-    const existingUser = mockUsers.find(u => u.email === data.email);
-    if (existingUser) {
-      throw new Error('Email already exists');
+  async register(data: RegisterData): Promise<RegisterResponse> {
+    try {
+      const payload: Record<string, string> = {
+        firstName: data.name.split(' ')[0],
+        lastName: data.name.split(' ').slice(1).join(' ') || data.name.split(' ')[0],
+        email: data.email,
+        password: data.password,
+        role: `ROLE_${data.role.toUpperCase()}`
+      };
+      if (data.phone) {
+        payload.phone = data.phone;
+      }
+      console.log('Register payload:', payload);
+      const response = await api.post<{ data: string }>('/v1/auth/register', payload);
+      return { 
+        message: response.data.data, 
+        email: data.email 
+      };
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      throw new Error(err.response?.data?.message || err.message || 'Registration failed');
     }
+  },
 
-    const newUser: User = {
-      id: String(mockUsers.length + 1),
-      email: data.email,
-      name: data.name,
-      role: data.role,
-      phone: data.phone,
-      createdAt: new Date().toISOString(),
-    };
+  async verifyOtp(data: OtpVerifyRequest): Promise<OtpVerifyResponse> {
+    try {
+      const response = await api.post<{ data: string }>('/v1/auth/verify-otp', data);
+      return { message: response.data.data };
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      throw new Error(err.response?.data?.message || err.message || 'OTP verification failed');
+    }
+  },
 
-    mockUsers.push(newUser);
-    const token = `mock-jwt-token-${newUser.id}-${Date.now()}`;
-
-    return { user: newUser, token };
+  async resendOtp(data: ResendOtpRequest): Promise<ResendOtpResponse> {
+    try {
+      const response = await api.post<{ data: string }>('/v1/auth/resend-otp', data);
+      return { message: response.data.data };
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      throw new Error(err.response?.data?.message || err.message || 'Failed to resend OTP');
+    }
   },
 
   async googleLogin(googleToken: string): Promise<AuthResponse> {
-    await delay(1000);
-
-    // In a real app:
-    // const response = await api.post('/auth/google', { token: googleToken });
-    // return response.data;
-
-    console.log('Google Auth flow active with token:', googleToken.substring(0, 10) + '...');
-
-    const user: User = {
-      id: 'google-user-123',
-      email: 'googleuser@example.com',
-      name: 'Google User',
-      role: '' as any, // Role-less user to trigger role selection
-      createdAt: new Date().toISOString(),
-    };
-
-    // Return a mock JWT
-    const token = `mock-backend-jwt-${user.id}-${Date.now()}`;
-
-    return { user, token };
+    try {
+      const response = await api.post<{ data: AuthResponse }>('/v1/auth/google', { token: googleToken });
+      const authData = response.data.data;
+      this.setAuthData(authData.token, authData.user);
+      return authData;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      throw new Error(err.response?.data?.message || err.message || 'Google login failed');
+    }
   },
 
   async logout(): Promise<void> {
-    await delay(300);
     googleLogout(); // Revoke Google session
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
 
   async getCurrentUser(): Promise<User | null> {
-    await delay(500);
-
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-
     try {
-      return JSON.parse(userStr);
+      const response = await api.get<{ data: User }>('/v1/auth/me');
+      return response.data.data;
     } catch {
-      return null;
+      // If API fails, try to get from localStorage
+      return this.getStoredUser();
     }
   },
 

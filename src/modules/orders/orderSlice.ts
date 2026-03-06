@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Order, OrderStatus } from './types';
+import { orderService, type CreateOrderData } from './orderService';
 
 interface OrderState {
     orders: Order[];
@@ -33,76 +34,36 @@ const initialState: OrderState = {
     error: null,
 };
 
-// Mock service for orders
-const mockOrders: Order[] = [
-    {
-        id: 'ORD-123456',
-        userId: 'user_1',
-        items: [
-            {
-                id: 'item_1',
-                productId: 'prod_1',
-                name: 'Organic Tomatoes',
-                price: 40,
-                quantity: 5,
-                image: 'https://images.unsplash.com/photo-1546473427-e1ad00490b6a?w=400',
-                unit: 'kg',
-            },
-        ],
-        totalAmount: 200,
-        status: 'delivered',
-        shippingAddress: '123 Farm Road, Rural Village',
-        paymentMethod: 'UPI',
-        paymentStatus: 'completed',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    },
-    {
-        id: 'ORD-789012',
-        userId: 'user_1',
-        items: [
-            {
-                id: 'item_2',
-                productId: 'prod_2',
-                name: 'Basmati Rice',
-                price: 120,
-                quantity: 2,
-                image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
-                unit: 'kg',
-            },
-        ],
-        totalAmount: 240,
-        status: 'pending',
-        shippingAddress: '123 Farm Road, Rural Village',
-        paymentMethod: 'Card',
-        paymentStatus: 'completed',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    }
-];
-
 export const fetchOrders = createAsyncThunk(
     'orders/fetchOrders',
     async ({ status, page, limit }: { status: OrderStatus | 'all', page: number, limit: number }, { rejectWithValue }) => {
         try {
-            await new Promise((resolve) => setTimeout(resolve, 800));
-            let filtered = [...mockOrders];
-            if (status !== 'all') {
-                filtered = filtered.filter(o => o.status === status);
-            }
+            const response = await orderService.getUserOrders(page, limit, status);
+            return response;
+        } catch (error) {
+            return rejectWithValue((error as Error).message);
+        }
+    }
+);
 
-            const total = filtered.length;
-            const totalPages = Math.ceil(total / limit);
-            const start = (page - 1) * limit;
-            const data = filtered.slice(start, start + limit);
+export const fetchFarmerOrders = createAsyncThunk(
+    'orders/fetchFarmerOrders',
+    async ({ status, page, limit }: { status: OrderStatus | 'all', page: number, limit: number }, { rejectWithValue }) => {
+        try {
+            const response = await orderService.getFarmerOrders(page, limit, status);
+            return response;
+        } catch (error) {
+            return rejectWithValue((error as Error).message);
+        }
+    }
+);
 
-            return {
-                data,
-                total,
-                page,
-                limit,
-                totalPages,
-            };
+export const createOrder = createAsyncThunk(
+    'orders/createOrder',
+    async (data: CreateOrderData, { rejectWithValue }) => {
+        try {
+            const order = await orderService.createOrder(data);
+            return order;
         } catch (error) {
             return rejectWithValue((error as Error).message);
         }
@@ -113,9 +74,32 @@ export const cancelOrder = createAsyncThunk(
     'orders/cancelOrder',
     async (id: string, { rejectWithValue }) => {
         try {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            // In real app, API would handle this
-            return id;
+            const order = await orderService.cancelOrder(id);
+            return order;
+        } catch (error) {
+            return rejectWithValue((error as Error).message);
+        }
+    }
+);
+
+export const updateOrderStatus = createAsyncThunk(
+    'orders/updateOrderStatus',
+    async ({ orderId, status }: { orderId: string; status: OrderStatus }, { rejectWithValue }) => {
+        try {
+            const order = await orderService.updateOrderStatus({ orderId, status });
+            return order;
+        } catch (error) {
+            return rejectWithValue((error as Error).message);
+        }
+    }
+);
+
+export const fetchOrderById = createAsyncThunk(
+    'orders/fetchOrderById',
+    async (orderId: string, { rejectWithValue }) => {
+        try {
+            const order = await orderService.getOrderById(orderId);
+            return order;
         } catch (error) {
             return rejectWithValue((error as Error).message);
         }
@@ -136,9 +120,13 @@ const orderSlice = createSlice({
         clearSelectedOrder: (state) => {
             state.selectedOrder = null;
         },
+        clearError: (state) => {
+            state.error = null;
+        },
     },
     extraReducers: (builder) => {
         builder
+            // Fetch user orders
             .addCase(fetchOrders.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
@@ -157,22 +145,83 @@ const orderSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload as string;
             })
+            // Fetch farmer orders
+            .addCase(fetchFarmerOrders.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchFarmerOrders.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.orders = action.payload.data;
+                state.pagination = {
+                    page: action.payload.page,
+                    limit: action.payload.limit,
+                    total: action.payload.total,
+                    totalPages: action.payload.totalPages,
+                };
+            })
+            .addCase(fetchFarmerOrders.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+            // Create order
+            .addCase(createOrder.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(createOrder.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.orders.unshift(action.payload);
+            })
+            .addCase(createOrder.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+            // Cancel order
             .addCase(cancelOrder.pending, (state) => {
                 state.isLoading = true;
             })
             .addCase(cancelOrder.fulfilled, (state, action) => {
                 state.isLoading = false;
-                const order = state.orders.find(o => o.id === action.payload);
-                if (order) {
-                    order.status = 'cancelled';
+                const index = state.orders.findIndex(o => o.id === action.payload.id);
+                if (index !== -1) {
+                    state.orders[index] = action.payload;
                 }
             })
             .addCase(cancelOrder.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+            // Update order status
+            .addCase(updateOrderStatus.pending, (state) => {
+                state.isLoading = true;
+            })
+            .addCase(updateOrderStatus.fulfilled, (state, action) => {
+                state.isLoading = false;
+                const index = state.orders.findIndex(o => o.id === action.payload.id);
+                if (index !== -1) {
+                    state.orders[index] = action.payload;
+                }
+            })
+            .addCase(updateOrderStatus.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+            // Fetch order by ID
+            .addCase(fetchOrderById.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchOrderById.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.selectedOrder = action.payload;
+            })
+            .addCase(fetchOrderById.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
             });
     },
 });
 
-export const { setFilters, setPage, clearSelectedOrder } = orderSlice.actions;
+export const { setFilters, setPage, clearSelectedOrder, clearError } = orderSlice.actions;
 export default orderSlice.reducer;

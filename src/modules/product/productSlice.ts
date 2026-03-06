@@ -1,9 +1,10 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Product, ProductCategory, ProductFilters } from './types';
-import { productService } from './productService';
+import { productService, type CreateProductData, type UpdateProductData } from './productService';
 
 interface ProductState {
   products: Product[];
+  farmerProducts: Product[];
   selectedProduct: Product | null;
   categories: ProductCategory[];
   filters: ProductFilters;
@@ -15,11 +16,13 @@ interface ProductState {
   };
   isLoading: boolean;
   isLoadingProduct: boolean;
+  isSaving: boolean;
   error: string | null;
 }
 
 const initialState: ProductState = {
   products: [],
+  farmerProducts: [],
   selectedProduct: null,
   categories: [],
   filters: {},
@@ -31,6 +34,7 @@ const initialState: ProductState = {
   },
   isLoading: false,
   isLoadingProduct: false,
+  isSaving: false,
   error: null,
 };
 
@@ -75,25 +79,77 @@ export const fetchCategories = createAsyncThunk(
   }
 );
 
+export const fetchMyProducts = createAsyncThunk(
+  'product/fetchMyProducts',
+  async ({ page, limit }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+    try {
+      const response = await productService.getMyProducts(page, limit);
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const createProduct = createAsyncThunk(
+  'product/createProduct',
+  async (data: CreateProductData, { rejectWithValue }) => {
+    try {
+      const product = await productService.createProduct(data);
+      return product;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const updateProduct = createAsyncThunk(
+  'product/updateProduct',
+  async (data: UpdateProductData, { rejectWithValue }) => {
+    try {
+      const product = await productService.updateProduct(data);
+      return product;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const deleteProduct = createAsyncThunk(
+  'product/deleteProduct',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await productService.deleteProduct(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
 const productSlice = createSlice({
   name: 'product',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
+    setFilters: (state, action: PayloadAction<ProductFilters>) => {
       state.filters = { ...state.filters, ...action.payload };
     },
     clearFilters: (state) => {
       state.filters = {};
     },
-    setPage: (state, action) => {
+    setPage: (state, action: PayloadAction<number>) => {
       state.pagination.page = action.payload;
     },
     clearSelectedProduct: (state) => {
       state.selectedProduct = null;
     },
+    clearError: (state) => {
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch products
       .addCase(fetchProducts.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -112,6 +168,7 @@ const productSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      // Fetch product by ID
       .addCase(fetchProductById.pending, (state) => {
         state.isLoadingProduct = true;
         state.error = null;
@@ -124,11 +181,76 @@ const productSlice = createSlice({
         state.isLoadingProduct = false;
         state.error = action.payload as string;
       })
+      // Fetch categories
       .addCase(fetchCategories.fulfilled, (state, action) => {
         state.categories = action.payload;
+      })
+      // Fetch my products (farmer)
+      .addCase(fetchMyProducts.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchMyProducts.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.farmerProducts = action.payload.data;
+        state.pagination = {
+          page: action.payload.page,
+          limit: action.payload.limit,
+          total: action.payload.total,
+          totalPages: action.payload.totalPages,
+        };
+      })
+      .addCase(fetchMyProducts.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Create product
+      .addCase(createProduct.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(createProduct.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.farmerProducts.unshift(action.payload);
+      })
+      .addCase(createProduct.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      // Update product
+      .addCase(updateProduct.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(updateProduct.fulfilled, (state, action) => {
+        state.isSaving = false;
+        const index = state.farmerProducts.findIndex(p => p.id === action.payload.id);
+        if (index !== -1) {
+          state.farmerProducts[index] = action.payload;
+        }
+        if (state.selectedProduct?.id === action.payload.id) {
+          state.selectedProduct = action.payload;
+        }
+      })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      // Delete product
+      .addCase(deleteProduct.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(deleteProduct.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.farmerProducts = state.farmerProducts.filter(p => p.id !== action.payload);
+      })
+      .addCase(deleteProduct.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { setFilters, clearFilters, setPage, clearSelectedProduct } = productSlice.actions;
+export const { setFilters, clearFilters, setPage, clearSelectedProduct, clearError } = productSlice.actions;
 export default productSlice.reducer;

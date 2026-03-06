@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { RiArrowLeftLine, RiLoader4Line } from 'react-icons/ri';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
@@ -36,16 +36,16 @@ export function EditProductPage() {
   if (isLoading && !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary-600" size={48} />
+        <RiLoader4Line className="animate-spin text-green-600" size={48} />
       </div>
     );
   }
 
   if (!product && !isLoading) {
     return (
-      <div className="py-8">
-        <div className="container-custom text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+      <div className="w-full px-0">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
             Product Not Found
           </h1>
           <Link to="/farmer/products" className="btn-primary">
@@ -58,49 +58,48 @@ export function EditProductPage() {
 
   const initialData: Partial<ProductFormData> = product
     ? {
-        name: product.name,
-        category: product.category,
-        description: product.description,
-        retailPrice: product.retailPrice,
-        wholesalePrice: product.wholesalePrice,
-        quantity: product.quantity,
-        unit: product.unit,
-        organic: product.organic,
-        imagePreview: product.images[0],
-      }
+      name: product.name,
+      category: product.category,
+      description: product.description,
+      retailPrice: product.retailPrice,
+      wholesalePrice: product.wholesalePrice,
+      quantity: product.quantity,
+      unit: product.unit,
+      organic: product.organic,
+      imagePreview: product.images[0],
+    }
     : {};
 
   return (
-    <div className="py-8">
-      <div className="container-custom max-w-3xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+    <div className="w-full px-0">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <Link
+          to="/farmer/products"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 mb-4 font-medium transition-colors"
         >
-          <Link
-            to="/farmer/products"
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Back to Products
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Edit Product
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Update your product details
-          </p>
-        </motion.div>
+          <RiArrowLeftLine size={16} />
+          Back to Products
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Edit Product
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Update your product details below.
+        </p>
+      </motion.div>
 
-        <ProductForm
-          initialData={initialData}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          submitLabel="Update Product"
-        />
-      </div>
+      <ProductForm
+        initialData={initialData}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitLabel="Update Product"
+        cancelTo="/farmer/products"
+      />
     </div>
   );
 }

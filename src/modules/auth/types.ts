@@ -28,3 +28,25 @@ export interface AuthResponse {
   user: User;
   token: string;
 }
+
+export interface RegisterResponse {
+  message: string;
+  email: string;
+}
+
+export interface OtpVerifyRequest {
+  email: string;
+  otp: string;
+}
+
+export interface OtpVerifyResponse {
+  message: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
+export interface ResendOtpResponse {
+  message: string;
+}

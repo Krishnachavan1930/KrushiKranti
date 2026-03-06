@@ -1,10 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ChatState, Conversation, Message } from './types';
+import type { ChatState, Conversation, Message, BulkOrder } from './types';
 
 const initialState: ChatState = {
     conversations: [],
     activeConversation: null,
     messages: [],
+    bulkOrders: [],
     isLoading: false,
     error: null,
     isTyping: false,
@@ -16,6 +17,10 @@ const chatSlice = createSlice({
     reducers: {
         setConversations: (state, action: PayloadAction<Conversation[]>) => {
             state.conversations = action.payload;
+        },
+        addConversation: (state, action: PayloadAction<Conversation>) => {
+            const exists = state.conversations.some(c => c.id === action.payload.id);
+            if (!exists) state.conversations.unshift(action.payload);
         },
         setActiveConversation: (state, action: PayloadAction<Conversation | null>) => {
             state.activeConversation = action.payload;
@@ -33,19 +38,30 @@ const chatSlice = createSlice({
             const exists = state.messages.some(m => m.id === action.payload.id);
             if (exists) return;
             state.messages.push(action.payload);
-            // Update conversation last message
+            // Update conversation last message + unread count for incoming messages
             const convIdx = state.conversations.findIndex(c => c.id === state.activeConversation?.id);
             if (convIdx !== -1) {
                 state.conversations[convIdx].lastMessage = action.payload;
             }
         },
+        incrementUnread: (state, action: PayloadAction<string>) => {
+            const conv = state.conversations.find(c => c.id === action.payload);
+            if (conv) conv.unreadCount += 1;
+        },
         updatePriceOfferStatus: (
             state,
-            action: PayloadAction<{ messageId: string; status: 'accepted' | 'rejected' }>
+            action: PayloadAction<{
+                messageId: string;
+                status: 'accepted' | 'rejected' | 'countered';
+                counterPrice?: number;
+            }>
         ) => {
             const msg = state.messages.find(m => m.id === action.payload.messageId);
             if (msg?.priceOffer) {
                 msg.priceOffer.status = action.payload.status;
+                if (action.payload.counterPrice !== undefined) {
+                    msg.priceOffer.counterPrice = action.payload.counterPrice;
+                }
             }
             // Update conversation status if accepted
             if (action.payload.status === 'accepted' && state.activeConversation) {
@@ -53,6 +69,10 @@ const chatSlice = createSlice({
                 if (convIdx !== -1) state.conversations[convIdx].status = 'agreed';
                 if (state.activeConversation) state.activeConversation.status = 'agreed';
             }
+        },
+        addBulkOrder: (state, action: PayloadAction<BulkOrder>) => {
+            const exists = state.bulkOrders.some(o => o.id === action.payload.id);
+            if (!exists) state.bulkOrders.push(action.payload);
         },
         setTyping: (state, action: PayloadAction<boolean>) => {
             state.isTyping = action.payload;
@@ -68,10 +88,13 @@ const chatSlice = createSlice({
 
 export const {
     setConversations,
+    addConversation,
     setActiveConversation,
     setMessages,
     addMessage,
+    incrementUnread,
     updatePriceOfferStatus,
+    addBulkOrder,
     setTyping,
     setLoading,
     setError,

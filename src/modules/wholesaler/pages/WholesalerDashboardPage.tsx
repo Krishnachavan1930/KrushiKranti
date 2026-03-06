@@ -12,6 +12,7 @@ import {
   RiMessage2Line,
   RiUserLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../../../shared/hooks';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -38,13 +39,6 @@ const supplierRatings = [
   { farmer: 'Lata Devi', product: 'Toor Dal', rating: 3.9, orders: 3 },
 ];
 
-const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
-  pending: { label: 'Pending', cls: 'text-yellow-700 bg-yellow-50  border-yellow-200', icon: RiTimeLine },
-  negotiating: { label: 'Negotiating', cls: 'text-blue-700   bg-blue-50    border-blue-200', icon: RiArrowUpDownLine },
-  approved: { label: 'Approved', cls: 'text-green-700  bg-green-50   border-green-200', icon: RiCheckboxCircleLine },
-  rejected: { label: 'Rejected', cls: 'text-red-700    bg-red-50     border-red-200', icon: RiCloseCircleLine },
-};
-
 function StarBar({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-1">
@@ -60,26 +54,46 @@ function StarBar({ rating }: { rating: number }) {
 }
 
 export function WholesalerDashboardPage() {
+  const { t } = useTranslation();
   const { stats } = useAppSelector((state) => state.wholesaler);
+
+  const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+    pending: { label: t('wholesaler.status_pending'), cls: 'text-yellow-700 bg-yellow-50  border-yellow-200', icon: RiTimeLine },
+    negotiating: { label: t('wholesaler.status_negotiating'), cls: 'text-blue-700   bg-blue-50    border-blue-200', icon: RiArrowUpDownLine },
+    approved: { label: t('wholesaler.status_approved'), cls: 'text-green-700  bg-green-50   border-green-200', icon: RiCheckboxCircleLine },
+    rejected: { label: t('wholesaler.status_rejected'), cls: 'text-red-700    bg-red-50     border-red-200', icon: RiCloseCircleLine },
+  };
+
+  const statCards = [
+    { label: t('wholesaler.stat_inventory_value'), value: `₹${stats.totalInventoryValue.toLocaleString('en-IN')}`, sub: t('wholesaler.stat_inventory_value_sub'), icon: RiArrowUpLine },
+    { label: t('wholesaler.stat_bulk_requests'), value: String(stats.totalRequests), sub: t('wholesaler.stat_bulk_requests_sub'), icon: RiFileListLine },
+    { label: t('wholesaler.stat_inventory_items'), value: String(stats.inventoryItems), sub: t('wholesaler.stat_inventory_items_sub'), icon: RiShoppingBagLine },
+    { label: t('wholesaler.stat_avg_rating'), value: '4.4', sub: t('wholesaler.stat_avg_rating_sub'), icon: RiStarLine },
+  ];
+
+  const tableHeaders = [
+    t('wholesaler.col_id'),
+    t('wholesaler.col_farmer'),
+    t('wholesaler.col_product'),
+    t('wholesaler.col_qty'),
+    t('wholesaler.col_offered_price'),
+    t('wholesaler.col_status'),
+    '',
+  ];
 
   return (
     <div className="space-y-6">
       {/* Page heading */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Wholesaler Overview</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('wholesaler.overview_title')}</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Manage bulk requests, negotiate pricing, and track suppliers.
+          {t('wholesaler.overview_desc')}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Inventory Value', value: `₹${stats.totalInventoryValue.toLocaleString('en-IN')}`, sub: 'Current stock', icon: RiArrowUpLine },
-          { label: 'Bulk Requests', value: String(stats.totalRequests), sub: 'Requests sent', icon: RiFileListLine },
-          { label: 'Inventory Items', value: String(stats.inventoryItems), sub: 'Product types', icon: RiShoppingBagLine },
-          { label: 'Avg Supplier Rating', value: '4.4', sub: 'Across suppliers', icon: RiStarLine },
-        ].map((s) => (
+        {statCards.map((s) => (
           <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
               <s.icon size={18} className="text-slate-400 dark:text-slate-500" />
@@ -93,7 +107,7 @@ export function WholesalerDashboardPage() {
 
       {/* Purchase Chart */}
       <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Monthly Purchase Volume</h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">{t('wholesaler.monthly_purchase')}</h3>
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={purchaseData}>
@@ -115,20 +129,20 @@ export function WholesalerDashboardPage() {
         {/* Bulk Requests */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Bulk Purchase Requests</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('wholesaler.bulk_purchase_requests')}</h3>
             <Link
               to="/wholesaler/bulk-requests"
               className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400"
             >
-              All requests <RiArrowRightSLine size={14} />
+              {t('wholesaler.all_requests')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
-                  {['ID', 'Farmer', 'Product', 'Qty', 'Offered Price', 'Status', ''].map((h) => (
-                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
+                  {tableHeaders.map((h, i) => (
+                    <th key={i} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -152,7 +166,7 @@ export function WholesalerDashboardPage() {
                       <td className="px-5 py-3">
                         {req.status === 'negotiating' && (
                           <Link to="/wholesaler/chat" className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                            <RiMessage2Line size={12} /> Chat
+                            <RiMessage2Line size={12} /> {t('chat.send')}
                           </Link>
                         )}
                       </td>
@@ -167,7 +181,7 @@ export function WholesalerDashboardPage() {
         {/* Supplier Ratings */}
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Supplier Ratings</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('wholesaler.supplier_ratings')}</h3>
           </div>
           <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
             {supplierRatings.map((s) => (
@@ -177,7 +191,7 @@ export function WholesalerDashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{s.farmer}</p>
-                  <p className="text-[10px] text-slate-400">{s.product} · {s.orders} orders</p>
+                  <p className="text-[10px] text-slate-400">{s.product} · {s.orders} {t('wholesaler.orders_label')}</p>
                   <StarBar rating={s.rating} />
                 </div>
               </div>

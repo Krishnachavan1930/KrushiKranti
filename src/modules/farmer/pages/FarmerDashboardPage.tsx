@@ -8,7 +8,9 @@ import {
   RiEditLine,
   RiDeleteBinLine,
   RiAddLine,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../../../shared/hooks';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -52,56 +54,64 @@ const statusColors: Record<string, string> = {
 };
 
 export function FarmerDashboardPage() {
+  const { t } = useTranslation();
   const { stats } = useAppSelector((state) => state.farmer);
   const lowStock = myProducts.filter((p) => p.alert);
+
+  const statCards = [
+    { label: t('farmer.stat_revenue'), value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`, sub: t('farmer.stat_revenue_sub'), icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
+    { label: t('farmer.stat_orders'), value: String(stats.totalOrders), sub: t('farmer.stat_orders_sub'), icon: RiShoppingBagLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
+    { label: t('farmer.stat_products'), value: String(stats.totalProducts), sub: t('farmer.stat_products_sub'), icon: RiPlantLine, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600' },
+    { label: t('farmer.stat_alerts'), value: String(lowStock.length), sub: t('farmer.stat_alerts_sub'), icon: RiAlertLine, iconBg: 'bg-red-50 dark:bg-red-900/20', iconColor: 'text-red-500' },
+  ];
+
+  const productHeaders = [t('farmer.col_product'), t('farmer.col_stock'), t('farmer.col_price'), ''];
+  const orderHeaders = [t('farmer.col_buyer'), t('farmer.col_product'), t('farmer.col_amount'), t('farmer.col_status')];
 
   return (
     <div className="space-y-6">
       {/* Page heading */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Farmer Overview</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage products, orders, and revenue.</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('farmer.overview_title')}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('farmer.overview_desc')}</p>
         </div>
         <Link
           to="/farmer/products/add"
           className="flex items-center gap-1.5 text-xs font-semibold bg-green-600 text-white px-3 py-2 rounded-md"
         >
-          <RiAddLine size={14} /> Add Product
+          <RiAddLine size={14} /> {t('common.add_product')}
         </Link>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Revenue', value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`, sub: '+15% growth', icon: RiArrowUpLine },
-          { label: 'Total Orders', value: String(stats.totalOrders), sub: 'Fulfilled orders', icon: RiShoppingBagLine },
-          { label: 'Active Products', value: String(stats.totalProducts), sub: 'In inventory', icon: RiPlantLine },
-          { label: 'Stock Alerts', value: String(lowStock.length), sub: 'Need restocking', icon: RiAlertLine },
-        ].map((s) => (
-          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
-              <s.icon size={18} className="text-slate-400 dark:text-slate-500" />
+        {statCards.map((s) => (
+          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.iconBg}`}>
+                <s.icon size={20} className={s.iconColor} />
+              </div>
               <span className="text-[10px] font-medium text-slate-400">{s.sub}</span>
             </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Stock Alerts Banner (only when there are alerts) */}
+      {/* Stock Alerts Banner */}
       {lowStock.length > 0 && (
         <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg px-5 py-3 flex items-center gap-3">
           <RiAlertLine size={16} className="text-yellow-600 shrink-0" />
           <span className="text-sm font-medium text-yellow-800 dark:text-yellow-400">
-            {lowStock.length} product{lowStock.length > 1 ? 's' : ''} need restocking:
+            {lowStock.length} {lowStock.length > 1 ? t('farmer.restock_banner') : t('farmer.restock_banner_single')}:
           </span>
           <span className="text-sm text-yellow-700 dark:text-yellow-300">
             {lowStock.map((p) => p.name).join(', ')}
           </span>
           <Link to="/farmer/products" className="ml-auto text-xs font-semibold text-yellow-700 dark:text-yellow-400 shrink-0">
-            Manage
+            {t('common.manage')}
           </Link>
         </div>
       )}
@@ -109,21 +119,21 @@ export function FarmerDashboardPage() {
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Revenue (6 months)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">{t('farmer.chart_revenue')}</h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }} formatter={(v) => [`₹${v}`, 'Revenue']} />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '11px' }} formatter={(v) => [`₹${v}`, t('farmer.stat_revenue')]} />
                 <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Orders (6 months)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">{t('farmer.chart_orders')}</h3>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orderData}>
@@ -143,15 +153,15 @@ export function FarmerDashboardPage() {
         {/* Product Inventory */}
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">My Products</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('farmer.my_products')}</h3>
             <Link to="/farmer/products" className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-              Manage <RiArrowRightSLine size={14} />
+              {t('common.manage')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                {['Product', 'Stock', 'Price', ''].map((h) => (
+                {productHeaders.map((h) => (
                   <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                 ))}
               </tr>
@@ -163,7 +173,7 @@ export function FarmerDashboardPage() {
                     <p className="text-sm font-medium text-slate-900 dark:text-white">{p.name}</p>
                     {p.alert && (
                       <span className="text-[10px] text-yellow-700 dark:text-yellow-400 font-semibold">
-                        {p.stock === 0 ? 'Out of stock' : 'Low stock'}
+                        {p.stock === 0 ? t('common.out_of_stock') : t('common.low_stock')}
                       </span>
                     )}
                   </td>
@@ -188,15 +198,15 @@ export function FarmerDashboardPage() {
         {/* Incoming Orders */}
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Incoming Orders</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('farmer.incoming_orders')}</h3>
             <Link to="/farmer/orders" className="flex items-center gap-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-              View all <RiArrowRightSLine size={14} />
+              {t('common.view_all')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                {['Buyer', 'Product', 'Amount', 'Status'].map((h) => (
+                {orderHeaders.map((h) => (
                   <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
                 ))}
               </tr>

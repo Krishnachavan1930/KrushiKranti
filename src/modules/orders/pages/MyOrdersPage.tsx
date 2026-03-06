@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiShoppingBagLine,
     RiTruckLine,
@@ -21,43 +22,39 @@ import type { OrderStatus } from '../types';
 import toast from 'react-hot-toast';
 
 // ── Status configuration ─────────────────────────────────────────────────────
-const STATUS_META: Record<
-    OrderStatus,
-    { label: string; icon: React.ElementType; badgeClass: string; dotClass: string }
-> = {
+const getStatusMeta = (t: any) => ({
     pending: {
-        label: 'Pending',
+        label: t('orders.status.pending'),
         icon: RiTimeLine,
         badgeClass: 'bg-yellow-100 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800',
         dotClass: 'bg-yellow-400',
     },
     processing: {
-        label: 'Confirmed',
+        label: t('orders.status.processing'),
         icon: RiFileListLine,
         badgeClass: 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
         dotClass: 'bg-blue-400',
     },
     shipped: {
-        label: 'Shipped',
+        label: t('orders.status.shipped'),
         icon: RiTruckLine,
         badgeClass: 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
         dotClass: 'bg-purple-400',
     },
     delivered: {
-        label: 'Delivered',
+        label: t('orders.status.delivered'),
         icon: RiCheckboxCircleLine,
         badgeClass: 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
         dotClass: 'bg-green-500',
     },
     cancelled: {
-        label: 'Cancelled',
+        label: t('orders.status.cancelled'),
         icon: RiCloseCircleLine,
         badgeClass: 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
         dotClass: 'bg-red-400',
     },
-};
+});
 
-// ── Timeline steps ───────────────────────────────────────────────────────────
 const TIMELINE_STEPS: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered'];
 const STEP_ORDER: Record<OrderStatus, number> = {
     pending: 0,
@@ -67,20 +64,21 @@ const STEP_ORDER: Record<OrderStatus, number> = {
     cancelled: -1,
 };
 
-function OrderTimeline({ status }: { status: OrderStatus }) {
+function OrderTimeline({ status, t }: { status: OrderStatus; t: any }) {
+    const statusMeta = getStatusMeta(t);
     const currentStep = STEP_ORDER[status];
     if (status === 'cancelled') {
         return (
             <div className="flex items-center gap-2 text-red-500 dark:text-red-400 text-xs font-semibold">
                 <RiCloseCircleLine size={15} />
-                Order Cancelled
+                {t('orders.status.cancelled')}
             </div>
         );
     }
     return (
         <div className="flex items-center gap-0">
             {TIMELINE_STEPS.map((step, idx) => {
-                const meta = STATUS_META[step];
+                const meta = statusMeta[step];
                 const Icon = meta.icon;
                 const isCompleted = idx <= currentStep;
                 const isActive = idx === currentStep;
@@ -123,24 +121,25 @@ function OrderTimeline({ status }: { status: OrderStatus }) {
     );
 }
 
-// ── Filter button labels ─────────────────────────────────────────────────────
-const FILTER_OPTIONS: { value: OrderStatus | 'all'; label: string }[] = [
-    { value: 'all', label: 'All Orders' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'processing', label: 'Confirmed' },
-    { value: 'shipped', label: 'Shipped' },
-    { value: 'delivered', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' },
-];
-
 // ── Main Page ────────────────────────────────────────────────────────────────
 export function MyOrdersPage() {
+    const { t } = useTranslation();
     const dispatch = useAppDispatch();
+    const statusMeta = getStatusMeta(t);
     const { orders, filters, pagination, isLoading, error } = useAppSelector(
         (state) => state.orders
     );
     const [cancelModalId, setCancelModalId] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const filterOptions = [
+        { value: 'all', label: t('orders.filter.all') },
+        { value: 'pending', label: t('orders.status.pending') },
+        { value: 'processing', label: t('orders.status.processing') },
+        { value: 'shipped', label: t('orders.status.shipped') },
+        { value: 'delivered', label: t('orders.status.delivered') },
+        { value: 'cancelled', label: t('orders.status.cancelled') },
+    ];
 
     useEffect(() => {
         dispatch(
@@ -159,10 +158,10 @@ export function MyOrdersPage() {
     const handleCancelOrder = async (id: string) => {
         const result = await dispatch(cancelOrder(id));
         if (cancelOrder.fulfilled.match(result)) {
-            toast.success('Order cancelled successfully');
+            toast.success(t('orders.cancel_success'));
             setCancelModalId(null);
         } else {
-            toast.error('Failed to cancel order');
+            toast.error(t('orders.cancel_failed'));
         }
     };
 
@@ -194,10 +193,10 @@ export function MyOrdersPage() {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
-                                My Orders
+                                {t('orders.title')}
                             </h1>
                             <p className="text-xs text-slate-400">
-                                {pagination.total} order{pagination.total !== 1 ? 's' : ''} total
+                                {pagination.total} {pagination.total !== 1 ? t('orders.total_orders') : t('orders.total_order')}
                             </p>
                         </div>
                     </div>
@@ -206,10 +205,10 @@ export function MyOrdersPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                         <RiFilterLine size={14} className="text-slate-400 shrink-0" />
                         <div className="flex gap-1 flex-wrap">
-                            {FILTER_OPTIONS.map((opt) => (
+                            {filterOptions.map((opt) => (
                                 <button
                                     key={opt.value}
-                                    onClick={() => handleStatusChange(opt.value)}
+                                    onClick={() => handleStatusChange(opt.value as any)}
                                     className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-none ${filters.status === opt.value
                                         ? 'bg-green-600 text-white border-green-600'
                                         : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -246,12 +245,12 @@ export function MyOrdersPage() {
                             className="mx-auto text-slate-300 dark:text-slate-700 mb-4"
                         />
                         <h2 className="text-lg font-bold text-slate-700 dark:text-white mb-2">
-                            No orders found
+                            {t('orders.no_orders')}
                         </h2>
                         <p className="text-sm text-slate-400 dark:text-slate-500">
                             {filters.status === 'all'
-                                ? "You haven't placed any orders yet."
-                                : `No ${filters.status} orders found.`}
+                                ? t('orders.no_orders_placed')
+                                : t('orders.no_orders_status', { status: statusMeta[filters.status as OrderStatus]?.label || filters.status })}
                         </p>
                     </div>
                 )}
@@ -259,7 +258,7 @@ export function MyOrdersPage() {
                 {/* Order cards */}
                 <div className="space-y-4">
                     {orders.map((order) => {
-                        const meta = STATUS_META[order.status];
+                        const meta = statusMeta[order.status];
                         const StatusIcon = meta.icon;
                         const isExpanded = expandedId === order.id;
 
@@ -285,7 +284,7 @@ export function MyOrdersPage() {
                                                 </p>
                                                 <p className="text-xs text-slate-400 mt-0.5">
                                                     {new Date(order.createdAt).toLocaleDateString(
-                                                        'en-IN',
+                                                        t('i18n.locale') === 'hi' ? 'hi-IN' : 'en-IN',
                                                         { dateStyle: 'long' }
                                                     )}
                                                 </p>
@@ -333,7 +332,7 @@ export function MyOrdersPage() {
                                         ))}
                                         {order.items.length > 3 && (
                                             <span className="text-xs text-slate-400 font-medium">
-                                                +{order.items.length - 3} more
+                                                +{order.items.length - 3} {t('common.more')}
                                             </span>
                                         )}
                                     </div>
@@ -341,7 +340,7 @@ export function MyOrdersPage() {
 
                                 {/* Timeline */}
                                 <div className="px-5 pb-4">
-                                    <OrderTimeline status={order.status} />
+                                    <OrderTimeline status={order.status} t={t} />
                                 </div>
 
                                 {/* Expanded details */}
@@ -350,7 +349,7 @@ export function MyOrdersPage() {
                                         {/* All items */}
                                         <div>
                                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                                                Order Items
+                                                {t('orders.order_items_label')}
                                             </p>
                                             <div className="space-y-2">
                                                 {order.items.map((item) => (
@@ -368,7 +367,7 @@ export function MyOrdersPage() {
                                                                 {item.name}
                                                             </p>
                                                             <p className="text-xs text-slate-400">
-                                                                Qty: {item.quantity} {item.unit} · ₹{item.price}/{item.unit}
+                                                                {t('wholesaler.quantity_label')}: {item.quantity} {item.unit} · ₹{item.price}/{item.unit}
                                                             </p>
                                                         </div>
                                                         <p className="text-sm font-bold text-green-700 dark:text-green-400">
@@ -383,7 +382,7 @@ export function MyOrdersPage() {
                                         <div className="grid sm:grid-cols-2 gap-4">
                                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
                                                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
-                                                    <RiTruckLine size={12} /> Shipping Address
+                                                    <RiTruckLine size={12} /> {t('orders.shipping_address')}
                                                 </p>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300">
                                                     {order.shippingAddress}
@@ -391,14 +390,14 @@ export function MyOrdersPage() {
                                             </div>
                                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
                                                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1">
-                                                    <RiFileListLine size={12} /> Payment
+                                                    <RiFileListLine size={12} /> {t('orders.payment.method')}
                                                 </p>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300">
-                                                    Method:{' '}
+                                                    {t('orders.payment.mode')}:{' '}
                                                     <span className="font-semibold">{order.paymentMethod}</span>
                                                 </p>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300">
-                                                    Status:{' '}
+                                                    {t('orders.payment.status')}:{' '}
                                                     <span className="font-semibold capitalize text-green-600 dark:text-green-400">
                                                         {order.paymentStatus}
                                                     </span>
@@ -416,11 +415,11 @@ export function MyOrdersPage() {
                                     >
                                         {isExpanded ? (
                                             <>
-                                                <RiArrowLeftLine size={13} /> Hide Details
+                                                <RiArrowLeftLine size={13} /> {t('orders.hide_details')}
                                             </>
                                         ) : (
                                             <>
-                                                View Details <RiArrowRightLine size={13} />
+                                                {t('orders.view_details')} <RiArrowRightLine size={13} />
                                             </>
                                         )}
                                     </button>
@@ -430,7 +429,7 @@ export function MyOrdersPage() {
                                             onClick={() => setCancelModalId(order.id)}
                                             className="text-xs font-semibold text-red-500 border border-red-200 dark:border-red-800 px-3 py-1.5 rounded-lg"
                                         >
-                                            Cancel Order
+                                            {t('orders.cancel_order')}
                                         </button>
                                     )}
                                     {(order.status === 'shipped' || order.status === 'processing') && (
@@ -438,7 +437,7 @@ export function MyOrdersPage() {
                                             to={`/orders/${order.id}/track`}
                                             className="flex items-center gap-1 text-xs font-semibold text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 px-3 py-1.5 rounded-lg"
                                         >
-                                            <RiTruckLine size={13} /> Track Order
+                                            <RiTruckLine size={13} /> {t('orders.track_order')}
                                         </Link>
                                     )}
                                 </div>
@@ -488,27 +487,23 @@ export function MyOrdersPage() {
                             <RiCloseCircleLine size={28} className="text-red-500" />
                         </div>
                         <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-2">
-                            Cancel Order?
+                            {t('orders.cancel_confirm_title')}
                         </h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                            Are you sure you want to cancel order{' '}
-                            <span className="font-bold text-slate-900 dark:text-white">
-                                #{cancelModalId}
-                            </span>
-                            ? This action cannot be undone.
+                            {t('orders.cancel_confirm_desc', { id: cancelModalId })}
                         </p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setCancelModalId(null)}
                                 className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm"
                             >
-                                Keep It
+                                {t('orders.keep_it')}
                             </button>
                             <button
                                 onClick={() => handleCancelOrder(cancelModalId)}
                                 className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm"
                             >
-                                Yes, Cancel
+                                {t('orders.yes_cancel')}
                             </button>
                         </div>
                     </div>

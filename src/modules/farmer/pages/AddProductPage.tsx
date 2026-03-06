@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { RiArrowLeftLine } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
@@ -23,35 +23,34 @@ export function AddProductPage() {
   };
 
   return (
-    <div className="py-8">
-      <div className="container-custom max-w-3xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+    <div className="w-full px-0">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <Link
+          to="/farmer/products"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 mb-4 font-medium transition-colors"
         >
-          <Link
-            to="/farmer/products"
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Back to Products
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Add New Product
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Fill in the details to list your product
-          </p>
-        </motion.div>
+          <RiArrowLeftLine size={16} />
+          Back to Products
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Add New Product
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Fill in all required fields below to list your product on KrushiKranti.
+        </p>
+      </motion.div>
 
-        <ProductForm
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          submitLabel="Add Product"
-        />
-      </div>
+      <ProductForm
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitLabel="Add Product"
+        cancelTo="/farmer/products"
+      />
     </div>
   );
 }

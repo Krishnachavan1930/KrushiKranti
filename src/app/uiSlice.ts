@@ -3,6 +3,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 interface UiState {
   darkMode: boolean;
   sidebarOpen: boolean;
+  language: string;
 }
 
 const getInitialDarkMode = (): boolean => {
@@ -16,9 +17,18 @@ const getInitialDarkMode = (): boolean => {
   return false;
 };
 
+const getInitialLanguage = (): string => {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("i18nextLng");
+    return stored || "en";
+  }
+  return "en";
+};
+
 const initialState: UiState = {
   darkMode: getInitialDarkMode(),
   sidebarOpen: false,
+  language: getInitialLanguage(),
 };
 
 const uiSlice = createSlice({
@@ -49,9 +59,13 @@ const uiSlice = createSlice({
     setSidebarOpen: (state, action: PayloadAction<boolean>) => {
       state.sidebarOpen = action.payload;
     },
+    setLanguage: (state, action: PayloadAction<string>) => {
+      state.language = action.payload;
+      localStorage.setItem("i18nextLng", action.payload);
+    },
   },
 });
 
-export const { toggleDarkMode, setDarkMode, toggleSidebar, setSidebarOpen } =
+export const { toggleDarkMode, setDarkMode, toggleSidebar, setSidebarOpen, setLanguage } =
   uiSlice.actions;
 export default uiSlice.reducer;

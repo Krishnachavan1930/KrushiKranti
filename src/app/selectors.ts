@@ -8,7 +8,7 @@ import type { RootState } from '../app/store';
 // Auth
 // ────────────────────────────────────────────────────────────────────────────
 export const selectUser = (s: RootState) => s.auth.user;
-export const selectRole = (s: RootState) => s.auth.user?.role ?? null;
+export const selectRole = (s: RootState) => s.auth.role ?? s.auth.user?.role ?? null;
 export const selectToken = (s: RootState) => s.auth.token;
 export const selectIsAuthenticated = (s: RootState) => s.auth.isAuthenticated;
 export const selectAuthLoading = (s: RootState) => s.auth.isLoading;
@@ -19,6 +19,7 @@ export const selectAuthError = (s: RootState) => s.auth.error;
 // ────────────────────────────────────────────────────────────────────────────
 export const selectDarkMode = (s: RootState) => s.ui.darkMode;
 export const selectSidebarOpen = (s: RootState) => s.ui.sidebarOpen;
+export const selectLanguage = (s: RootState) => s.ui.language;
 
 // ────────────────────────────────────────────────────────────────────────────
 // Products
@@ -70,17 +71,33 @@ export const selectIsInWishlist = (productId: string) =>
     (s: RootState) => s.wishlist.items.some((item) => item.id === productId);
 
 // ────────────────────────────────────────────────────────────────────────────
+// Blogs
+// ────────────────────────────────────────────────────────────────────────────
+export const selectBlogs = (s: RootState) => s.blog.blogs;
+export const selectBlogDetails = (s: RootState) => s.blog.blogDetails;
+export const selectBlogLoading = (s: RootState) => s.blog.loading;
+export const selectBlogError = (s: RootState) => s.blog.error;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Payment
+// ────────────────────────────────────────────────────────────────────────────
+export const selectPaymentStatus = (s: RootState) => s.payment.paymentStatus;
+export const selectPaymentLoading = (s: RootState) => s.payment.paymentLoading;
+export const selectPaymentError = (s: RootState) => s.payment.paymentError;
+export const selectPaymentOrderId = (s: RootState) => s.payment.orderId;
+
+// ────────────────────────────────────────────────────────────────────────────
 // Farmer
 // ────────────────────────────────────────────────────────────────────────────
 export const selectFarmerStats = (s: RootState) => s.farmer.stats;
 export const selectFarmerProducts = (s: RootState) => s.farmer.products;
-export const selectFarmerOrders = (s: RootState) => s.farmer.orders;
+// Farmer orders are usually accessed via the general orders slice filtered by role or specific API
 
 // ────────────────────────────────────────────────────────────────────────────
 // Wholesaler
 // ────────────────────────────────────────────────────────────────────────────
 export const selectWholesalerStats = (s: RootState) => s.wholesaler.stats;
-export const selectBulkRequests = (s: RootState) => s.wholesaler.bulkRequests;
+export const selectBulkRequests = (s: RootState) => s.wholesaler.requests;
 export const selectInventory = (s: RootState) => s.wholesaler.inventory;
 
 // ────────────────────────────────────────────────────────────────────────────

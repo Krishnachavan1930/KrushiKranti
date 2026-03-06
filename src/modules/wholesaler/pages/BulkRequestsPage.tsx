@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Send, Loader2, CheckCircle, Clock, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { fetchProducts } from '../../product/productSlice';
 import { sendBulkRequest, fetchRequests } from '../wholesalerSlice';
 
 export function BulkRequestsPage() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { products, isLoading: productsLoading } = useAppSelector((state) => state.product);
   const { requests, isSubmitting, isLoading: requestsLoading } = useAppSelector((state) => state.wholesaler);
@@ -26,7 +28,7 @@ export function BulkRequestsPage() {
   const handleSendRequest = async (product: typeof products[0]) => {
     const quantity = quantities[product.id];
     if (!quantity || quantity <= 0) {
-      toast.error('Please enter a valid quantity');
+      toast.error(t('wholesaler.invalid_quantity'));
       return;
     }
 
@@ -42,10 +44,10 @@ export function BulkRequestsPage() {
           pricePerUnit: product.wholesalePrice,
         })
       ).unwrap();
-      toast.success('Bulk request sent successfully!');
+      toast.success(t('wholesaler.request_sent'));
       setQuantities((prev) => ({ ...prev, [product.id]: 0 }));
     } catch {
-      toast.error('Failed to send bulk request');
+      toast.error(t('wholesaler.request_failed'));
     }
   };
 
@@ -89,10 +91,10 @@ export function BulkRequestsPage() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Bulk Requests
+            {t('wholesaler.bulk_requests_title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Browse products and send bulk purchase requests
+            {t('wholesaler.bulk_requests_desc')}
           </p>
         </motion.div>
 
@@ -100,23 +102,21 @@ export function BulkRequestsPage() {
         <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('browse')}
-            className={`pb-3 px-1 font-medium transition-colors ${
-              activeTab === 'browse'
+            className={`pb-3 px-1 font-medium transition-colors ${activeTab === 'browse'
                 ? 'text-primary-600 border-b-2 border-primary-600'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
-            Browse Products
+            {t('wholesaler.tab_browse')}
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`pb-3 px-1 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'requests'
+            className={`pb-3 px-1 font-medium transition-colors flex items-center gap-2 ${activeTab === 'requests'
                 ? 'text-primary-600 border-b-2 border-primary-600'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
-            My Requests
+            {t('wholesaler.tab_my_requests')}
             {requests.filter((r) => r.status === 'pending').length > 0 && (
               <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
                 {requests.filter((r) => r.status === 'pending').length}
@@ -152,12 +152,12 @@ export function BulkRequestsPage() {
                         {product.name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        by {product.farmerName}
+                        {t('wholesaler.by_farmer')} {product.farmerName}
                       </p>
                     </div>
                     {product.organic && (
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">
-                        Organic
+                        {t('wholesaler.organic')}
                       </span>
                     )}
                   </div>
@@ -165,7 +165,7 @@ export function BulkRequestsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Wholesale Price
+                        {t('wholesaler.wholesale_price')}
                       </p>
                       <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
                         ₹{product.wholesalePrice}/{product.unit}
@@ -173,7 +173,7 @@ export function BulkRequestsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Available
+                        {t('wholesaler.available')}
                       </p>
                       <p className="font-medium text-gray-900 dark:text-white">
                         {product.stock} {product.unit}
@@ -188,7 +188,7 @@ export function BulkRequestsPage() {
                       max={product.stock}
                       value={quantities[product.id] || ''}
                       onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                      placeholder={`Qty (${product.unit})`}
+                      placeholder={`${t('wholesaler.qty_placeholder')} (${product.unit})`}
                       className="flex-1 input-field py-2"
                     />
                     <motion.button
@@ -208,7 +208,7 @@ export function BulkRequestsPage() {
 
                   {quantities[product.id] > 0 && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                      Total: ₹{(quantities[product.id] * product.wholesalePrice).toLocaleString()}
+                      {t('wholesaler.total_label')}: ₹{(quantities[product.id] * product.wholesalePrice).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -224,10 +224,10 @@ export function BulkRequestsPage() {
               <div className="text-center py-16">
                 <ShoppingBag className="mx-auto text-gray-400 mb-4" size={64} />
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  No requests yet
+                  {t('wholesaler.no_requests_title')}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Browse products and send your first bulk request
+                  {t('wholesaler.no_requests_desc')}
                 </p>
               </div>
             ) : (
@@ -255,7 +255,7 @@ export function BulkRequestsPage() {
                                 {request.productName}
                               </h3>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                From: {request.farmerName}
+                                {t('wholesaler.from_farmer')}: {request.farmerName}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -271,26 +271,26 @@ export function BulkRequestsPage() {
                           </div>
                           <div className="mt-3 flex flex-wrap gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500 dark:text-gray-400">Quantity: </span>
+                              <span className="text-gray-500 dark:text-gray-400">{t('wholesaler.quantity_label')}: </span>
                               <span className="font-medium text-gray-900 dark:text-white">
                                 {request.quantity} {request.unit}
                               </span>
                             </div>
                             <div>
-                              <span className="text-gray-500 dark:text-gray-400">Price: </span>
+                              <span className="text-gray-500 dark:text-gray-400">{t('wholesaler.price_label')}: </span>
                               <span className="font-medium text-gray-900 dark:text-white">
                                 ₹{request.pricePerUnit}/{request.unit}
                               </span>
                             </div>
                             <div>
-                              <span className="text-gray-500 dark:text-gray-400">Total: </span>
+                              <span className="text-gray-500 dark:text-gray-400">{t('wholesaler.total_label')}: </span>
                               <span className="font-bold text-primary-600 dark:text-primary-400">
                                 ₹{request.totalPrice.toLocaleString()}
                               </span>
                             </div>
                           </div>
                           <p className="text-xs text-gray-400 mt-2">
-                            Requested on {new Date(request.createdAt).toLocaleDateString()}
+                            {t('wholesaler.requested_on')} {new Date(request.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

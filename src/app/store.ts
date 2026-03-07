@@ -13,6 +13,8 @@ import wishlistReducer from '../modules/wishlist/wishlistSlice';
 import notificationReducer from '../modules/notifications/notificationSlice';
 import blogReducer from '../modules/blog/blogSlice';
 import paymentReducer from '../modules/payment/paymentSlice';
+import bulkReducer from '../modules/bulk/bulkSlice';
+import negotiationReducer from '../modules/bulk/negotiationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +32,8 @@ export const store = configureStore({
     notifications: notificationReducer,
     blog: blogReducer,
     payment: paymentReducer,
+    bulk: bulkReducer,
+    negotiation: negotiationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

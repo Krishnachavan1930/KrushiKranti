@@ -202,33 +202,37 @@ export function Navbar() {
                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
               </div>
 
-              {/* Wishlist */}
-              <Link
-                to="/wishlist"
-                className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 relative inline-flex transition-colors group/nav"
-                title={t("wishlist.title")}
-              >
-                <RiHeartLine size={24} />
-                {wishlistCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-900 shadow-sm leading-none z-10">
-                    {wishlistCount}
-                  </span>
-                )}
-              </Link>
+              {/* Wishlist - Only show for USER role or unauthenticated */}
+              {(!isAuthenticated || currentRole === 'user') && (
+                <Link
+                  to="/wishlist"
+                  className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 relative inline-flex transition-colors group/nav"
+                  title={t("wishlist.title")}
+                >
+                  <RiHeartLine size={24} />
+                  {wishlistCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-900 shadow-sm leading-none z-10">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
+              )}
 
-              {/* Cart */}
-              <Link
-                to="/cart"
-                className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 relative inline-flex transition-colors group/nav"
-                title={t("cart.title")}
-              >
-                <RiShoppingCartLine size={24} />
-                {itemCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-900 shadow-sm leading-none z-10">
-                    {itemCount > 99 ? "99+" : itemCount}
-                  </span>
-                )}
-              </Link>
+              {/* Cart - Only show for USER role or unauthenticated */}
+              {(!isAuthenticated || currentRole === 'user') && (
+                <Link
+                  to="/cart"
+                  className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 relative inline-flex transition-colors group/nav"
+                  title={t("cart.title")}
+                >
+                  <RiShoppingCartLine size={24} />
+                  {itemCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-900 shadow-sm leading-none z-10">
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {/* Notifications */}
               <NotificationDropdown />

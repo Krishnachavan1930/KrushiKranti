@@ -1,44 +1,67 @@
-import { useState } from 'react';
-import { Search, Filter } from 'lucide-react';
-
-// Mock data
-const mockUsers = [
-  { id: '1', name: 'Ramesh Kumar', email: 'ramesh@example.com', role: 'farmer', status: 'active', createdAt: '2024-01-10', lastLogin: '2024-01-25' },
-  { id: '2', name: 'Suresh Patel', email: 'suresh@example.com', role: 'farmer', status: 'active', createdAt: '2024-01-12', lastLogin: '2024-01-24' },
-  { id: '3', name: 'Vikram Wholesale', email: 'vikram@wholesale.com', role: 'wholesaler', status: 'banned', createdAt: '2024-01-05', lastLogin: '2024-01-25' },
-  { id: '4', name: 'Priya Singh', email: 'priya@example.com', role: 'user', status: 'active', createdAt: '2024-01-15', lastLogin: '2024-01-23' },
-  { id: '5', name: 'Anil Sharma', email: 'anil@example.com', role: 'farmer', status: 'pending', createdAt: '2024-01-18', lastLogin: '2024-01-22' },
-  { id: '6', name: 'Meena Devi', email: 'meena@example.com', role: 'user', status: 'active', createdAt: '2024-01-20', lastLogin: '2024-01-25' },
-  { id: '7', name: 'Rajesh Gupta', email: 'rajesh@wholesale.com', role: 'wholesaler', status: 'active', createdAt: '2024-01-08', lastLogin: '2024-01-24' },
-  { id: '8', name: 'Super Admin', email: 'admin@krushikranti.com', role: 'admin', status: 'active', createdAt: '2024-01-01', lastLogin: '2024-01-25' },
-];
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, Loader2, RefreshCw } from 'lucide-react';
+import { adminService } from '../adminService';
+import type { AdminUser } from '../types';
+import toast from 'react-hot-toast';
 
 type Role = 'farmer' | 'wholesaler' | 'user' | 'admin';
 type Status = 'active' | 'banned' | 'pending';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  status: Status;
-  createdAt: string;
-  lastLogin: string;
-}
-
 export function ManageUsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers as User[]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActing, setIsActing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    totalPages: 0,
+    total: 0,
+  });
 
-  const handleToggleBan = (userId: string) => {
-    setUsers(prev =>
-      prev.map(user =>
-        user.id === userId
-          ? { ...user, status: user.status === 'banned' ? 'active' : 'banned' }
-          : user
-      )
-    );
+  const fetchUsers = useCallback(async (page: number = 0) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await adminService.getAllUsers(page, 20);
+      setUsers(response.users);
+      setPagination({
+        page: response.page,
+        totalPages: response.totalPages,
+        total: response.total,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch users';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers(0);
+  }, [fetchUsers]);
+
+  const handleToggleBan = async (userId: string, currentStatus: Status) => {
+    setIsActing(userId);
+    try {
+      if (currentStatus === 'banned') {
+        const updatedUser = await adminService.unbanUser(userId);
+        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+        toast.success('User unbanned successfully');
+      } else {
+        const updatedUser = await adminService.banUser(userId);
+        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+        toast.success('User banned successfully');
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Action failed';
+      toast.error(errorMsg);
+    } finally {
+      setIsActing(null);
+    }
   };
 
   const filteredUsers = users.filter(user => {
@@ -57,6 +80,8 @@ export function ManageUsersPage() {
         return 'bg-red-100 text-red-700';
       case 'pending':
         return 'bg-yellow-100 text-yellow-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -70,15 +95,48 @@ export function ManageUsersPage() {
         return 'bg-yellow-100 text-yellow-700';
       case 'user':
         return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
+
+  if (isLoading && users.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="animate-spin text-green-600" size={40} />
+      </div>
+    );
+  }
+
+  if (error && users.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <p className="text-red-500">{error}</p>
+        <button
+          onClick={() => fetchUsers(0)}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2"
+        >
+          <RefreshCw size={16} /> Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage platform users, roles, and access</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage platform users, roles, and access ({pagination.total} total)</p>
+        </div>
+        <button
+          onClick={() => fetchUsers(pagination.page)}
+          disabled={isLoading}
+          className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* Filters */}
@@ -137,17 +195,17 @@ export function ManageUsersPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role)}`}>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}>
                     {user.role}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status)}`}>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}>
                     {user.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '-'}
@@ -155,14 +213,17 @@ export function ManageUsersPage() {
                 <td className="px-4 py-3 text-right">
                   {user.role !== 'admin' && (
                     <button
-                      onClick={() => handleToggleBan(user.id)}
-                      className={`text-xs px-3 py-1 rounded font-medium ${
+                      onClick={() => handleToggleBan(user.id, user.status as Status)}
+                      disabled={isActing === user.id}
+                      className={`text-xs px-3 py-1 rounded font-medium disabled:opacity-50 ${
                         user.status === 'banned'
                           ? 'bg-green-600 text-white'
                           : 'bg-red-100 text-red-700'
                       }`}
                     >
-                      {user.status === 'banned' ? 'Unban' : 'Ban'}
+                      {isActing === user.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : user.status === 'banned' ? 'Unban' : 'Ban'}
                     </button>
                   )}
                 </td>
@@ -186,37 +247,63 @@ export function ManageUsersPage() {
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status)}`}>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}>
                 {user.status}
               </span>
             </div>
             <div className="flex items-center gap-2 mb-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role)}`}>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}>
                 {user.role}
               </span>
               <span className="text-xs text-gray-500">
-                Joined {new Date(user.createdAt).toLocaleDateString()}
+                Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
               </span>
             </div>
             {user.role !== 'admin' && (
               <button
-                onClick={() => handleToggleBan(user.id)}
-                className={`w-full text-xs py-2 rounded font-medium ${
+                onClick={() => handleToggleBan(user.id, user.status as Status)}
+                disabled={isActing === user.id}
+                className={`w-full text-xs py-2 rounded font-medium disabled:opacity-50 ${
                   user.status === 'banned'
                     ? 'bg-green-600 text-white'
                     : 'bg-red-100 text-red-700'
                 }`}
               >
-                {user.status === 'banned' ? 'Unban User' : 'Ban User'}
+                {isActing === user.id ? (
+                  <Loader2 size={12} className="animate-spin inline" />
+                ) : user.status === 'banned' ? 'Unban User' : 'Ban User'}
               </button>
             )}
           </div>
         ))}
       </div>
 
-      {filteredUsers.length === 0 && (
+      {filteredUsers.length === 0 && !isLoading && (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
           <p className="text-gray-500">No users found</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => fetchUsers(pagination.page - 1)}
+            disabled={pagination.page === 0 || isLoading}
+            className="px-3 py-1 rounded bg-white border border-gray-200 text-sm disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600">
+            Page {pagination.page + 1} of {pagination.totalPages}
+          </span>
+          <button
+            onClick={() => fetchUsers(pagination.page + 1)}
+            disabled={pagination.page >= pagination.totalPages - 1 || isLoading}
+            className="px-3 py-1 rounded bg-white border border-gray-200 text-sm disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

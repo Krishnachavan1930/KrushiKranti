@@ -14,8 +14,10 @@ export function WholesalerLayout() {
 
     const menuItems = [
         { to: '/wholesaler/dashboard', label: t('wholesaler.nav.dashboard'), icon: RiDashboardLine },
+        { to: '/bulk-market', label: 'Bulk Market', icon: RiStoreLine },
         { to: '/wholesaler/bulk-requests', label: t('wholesaler.nav.bulk_requests'), icon: RiFileListLine },
         { to: '/wholesaler/inventory', label: t('wholesaler.nav.inventory'), icon: RiStoreLine },
+        { to: '/wholesaler/negotiations', label: 'Negotiations', icon: RiMessage2Line },
         { to: '/wholesaler/chat', label: t('wholesaler.nav.chat'), icon: RiMessage2Line },
         { to: '/wholesaler/ratings', label: t('wholesaler.nav.supplier_ratings'), icon: RiStarLine },
         { to: '/wholesaler/profile', label: t('wholesaler.nav.profile'), icon: RiUserLine },

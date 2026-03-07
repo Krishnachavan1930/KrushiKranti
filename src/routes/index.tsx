@@ -214,9 +214,37 @@ const ChatPage = lazy(() =>
     default: m.ChatPage,
   })),
 );
-const ReadOnlyChatPage = lazy(() =>
-  import("../modules/chat/pages/ChatPage").then((m) => ({
-    default: () => <m.ChatPage readOnly={true} />,
+const GlobalChatMonitorPage = lazy(() =>
+  import("../modules/admin/pages/GlobalChatMonitorPage").then((m) => ({
+    default: m.default,
+  })),
+);
+
+
+// ── Bulk Marketplace pages ──────────────────────────────────────────────────
+const BulkMarketPage = lazy(() =>
+  import("../modules/bulk/pages/BulkMarketPage").then((m) => ({
+    default: m.BulkMarketPage,
+  })),
+);
+const FarmerBulkProductsPage = lazy(() =>
+  import("../modules/bulk/pages/FarmerBulkProductsPage").then((m) => ({
+    default: m.FarmerBulkProductsPage,
+  })),
+);
+const NegotiationChatPage = lazy(() =>
+  import("../modules/bulk/pages/NegotiationChatPage").then((m) => ({
+    default: m.NegotiationChatPage,
+  })),
+);
+const ReadOnlyNegotiationChatPage = lazy(() =>
+  import("../modules/bulk/pages/NegotiationChatPage").then((m) => ({
+    default: () => <m.NegotiationChatPage readOnly={true} />,
+  })),
+);
+const NegotiationsListPage = lazy(() =>
+  import("../modules/bulk/pages/NegotiationsListPage").then((m) => ({
+    default: m.NegotiationsListPage,
   })),
 );
 
@@ -281,9 +309,11 @@ const router = createBrowserRouter([
       {
         path: "cart",
         element: (
-          <SuspenseWrapper>
-            <CartPage />
-          </SuspenseWrapper>
+          <ProtectedRoute allowedRoles={["user"]}>
+            <SuspenseWrapper>
+              <CartPage />
+            </SuspenseWrapper>
+          </ProtectedRoute>
         ),
       },
       {
@@ -325,6 +355,14 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <BlogPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "bulk-market",
+        element: (
+          <SuspenseWrapper>
+            <BulkMarketPage />
           </SuspenseWrapper>
         ),
       },
@@ -490,6 +528,30 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "bulk-products",
+        element: (
+          <SuspenseWrapper>
+            <FarmerBulkProductsPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "negotiations",
+        element: (
+          <SuspenseWrapper>
+            <NegotiationsListPage chatBasePath="/farmer/chat" title="Farmer Negotiations" />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "chat/:conversationId",
+        element: (
+          <SuspenseWrapper>
+            <NegotiationChatPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
         path: "earnings",
         element: (
           <SuspenseWrapper>
@@ -543,6 +605,22 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <ProfilePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "negotiations",
+        element: (
+          <SuspenseWrapper>
+            <NegotiationsListPage chatBasePath="/wholesaler/chat" title="Wholesaler Negotiations" />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "chat/:conversationId",
+        element: (
+          <SuspenseWrapper>
+            <NegotiationChatPage />
           </SuspenseWrapper>
         ),
       },
@@ -636,10 +714,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "negotiations",
+        element: (
+          <SuspenseWrapper>
+            <NegotiationsListPage chatBasePath="/admin/chat" title="All Negotiations (Admin)" />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "chat/:conversationId",
+        element: (
+          <SuspenseWrapper>
+            <ReadOnlyNegotiationChatPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
         path: "chat",
         element: (
           <SuspenseWrapper>
-            <ReadOnlyChatPage />
+            <GlobalChatMonitorPage />
           </SuspenseWrapper>
         ),
       },

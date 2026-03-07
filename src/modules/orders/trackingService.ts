@@ -8,6 +8,7 @@ export interface TrackingActivity {
 
 export interface TrackingInfo {
   orderId: number;
+  orderNumber: string;
   orderStatus: string;
   deliveryStatus: string;
   awbCode: string;
@@ -19,6 +20,8 @@ export interface TrackingInfo {
   trackingActivities: TrackingActivity[];
   success: boolean;
   message?: string;
+  deliveryPartnerName?: string;
+  deliveryPartnerPhone?: string;
 }
 
 export interface ShipmentInfo {
@@ -30,52 +33,63 @@ export interface ShipmentInfo {
   estimatedDelivery: string;
 }
 
+export type DeliveryStatus =
+  | 'PENDING'
+  | 'PICKUP_SCHEDULED'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'RETURNED';
+
+export interface DeliveryOrder {
+  id: number;
+  orderNumber: string;
+  productName: string;
+  productImage: string;
+  quantity: number;
+  totalPrice: number;
+  totalAmount: number;
+  status: string;
+  deliveryStatus: string;
+  shippingAddress: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingPincode: string;
+  customerPhone: string;
+  userName: string;
+  userEmail: string;
+  createdAt: string;
+  deliveryPartnerName: string;
+  deliveryPartnerPhone: string;
+  deliveryNotes: string;
+  courierName: string;
+  awbCode: string;
+}
+
 const getErrorMessage = (error: unknown, defaultMsg: string): string => {
   const err = error as { response?: { data?: { message?: string } }; message?: string };
   return err.response?.data?.message || err.message || defaultMsg;
 };
 
 export const trackingService = {
-  /**
-   * Get tracking information for an order
-   */
   async getOrderTracking(orderId: string | number): Promise<TrackingInfo> {
     try {
-      const response = await api.get<{ data: TrackingInfo }>(`/v1/orders/${orderId}/tracking`);
+      // If it looks like an order number (starts with letters), use the orderNumber endpoint
+      const idStr = String(orderId);
+      const isOrderNumber = isNaN(Number(orderId)) || idStr.startsWith('KK-') || idStr.startsWith('ORD-');
+      const endpoint = isOrderNumber 
+        ? `/v1/orders/track/${orderId}` 
+        : `/v1/orders/${orderId}/track`;
+      const response = await api.get<{ data: TrackingInfo }>(endpoint);
       return response.data.data;
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to fetch tracking information'));
     }
   },
 
-  /**
-   * Get order details by ID
-   */
-  async getOrderById(orderId: string | number): Promise<{
-    id: number;
-    status: string;
-    productName: string;
-    productImage: string;
-    quantity: number;
-    totalPrice: number;
-    createdAt: string;
-    userName: string;
-    userEmail: string;
-    shipmentId: string | null;
-    awbCode: string | null;
-    courierName: string | null;
-    trackingStatus: string | null;
-    deliveryStatus: string | null;
-    estimatedDelivery: string | null;
-    adminCommission: number;
-    farmerAmount: number;
-    farmerId: number;
-    farmerName: string;
-    shippingAddress: string;
-    shippingCity: string;
-    shippingState: string;
-    shippingPincode: string;
-  }> {
+  async getOrderById(orderId: string | number) {
     try {
       const response = await api.get(`/v1/orders/${orderId}`);
       return response.data.data;
@@ -84,15 +98,50 @@ export const trackingService = {
     }
   },
 
-  /**
-   * Create shipment for an order
-   */
   async createShipment(orderId: string | number): Promise<ShipmentInfo> {
     try {
       const response = await api.post<{ data: ShipmentInfo }>(`/v1/orders/${orderId}/create-shipment`);
       return response.data.data;
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to create shipment'));
+    }
+  },
+
+  async assignDeliveryPartner(orderId: number, deliveryPartnerId: number, notes?: string) {
+    try {
+      const response = await api.post(`/v1/orders/${orderId}/assign-delivery`, {
+        deliveryPartnerId,
+        notes,
+      });
+      return response.data.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to assign delivery partner'));
+    }
+  },
+
+  async updateDeliveryStatus(orderId: number, deliveryStatus: DeliveryStatus) {
+    try {
+      const response = await api.put(`/v1/orders/${orderId}/delivery-status`, {
+        deliveryStatus,
+      });
+      return response.data.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to update delivery status'));
+    }
+  },
+
+  async getDeliveryPartnerOrders(
+    page = 0,
+    size = 10,
+    deliveryStatus?: DeliveryStatus
+  ): Promise<{ content: DeliveryOrder[]; totalElements: number; totalPages: number }> {
+    try {
+      const params: Record<string, string | number> = { page, size };
+      if (deliveryStatus) params.deliveryStatus = deliveryStatus;
+      const response = await api.get('/v1/orders/delivery/assigned', { params });
+      return response.data.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch delivery orders'));
     }
   },
 };

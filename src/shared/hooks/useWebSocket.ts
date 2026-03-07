@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { useAppSelector } from './index';
-import { websocketService } from '../../services/websocketService';
+import { useEffect, useRef } from "react";
+import { useAppSelector } from "./index";
+import { websocketService } from "../../services/websocketService";
 
 /**
  * Custom hook to manage WebSocket connection based on auth state.
@@ -24,13 +24,13 @@ export function useWebSocket() {
           // Subscribe based on user role
           websocketService.subscribeToUserNotifications(user.id);
 
-          if (user.role === 'farmer') {
+          if (user.role === "farmer") {
             websocketService.subscribeToFarmerOrders(user.id);
           }
 
-          console.log('WebSocket connected for user:', user.id);
+          console.log("WebSocket connected for user:", user.id);
         } catch (error) {
-          console.error('Failed to connect WebSocket:', error);
+          console.error("Failed to connect WebSocket:", error);
           connectedRef.current = false;
         }
       }
@@ -40,7 +40,7 @@ export function useWebSocket() {
       if (!isAuthenticated && connectedRef.current) {
         websocketService.disconnect();
         connectedRef.current = false;
-        console.log('WebSocket disconnected');
+        console.log("WebSocket disconnected");
       }
     };
 

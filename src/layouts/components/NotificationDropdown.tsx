@@ -47,8 +47,7 @@ const typeColor: Record<NotificationType, string> = {
     "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
   new_review:
     "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-  system:
-    "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
+  system: "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
 export function NotificationDropdown() {

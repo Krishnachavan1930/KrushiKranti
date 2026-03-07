@@ -32,7 +32,11 @@ export interface CreateMultiOrderData {
     productId: string;
     quantity: number;
   }[];
-  shippingAddress: string;
+  shippingAddress?: string;
+  shippingCity?: string;
+  shippingState?: string;
+  shippingPincode?: string;
+  customerPhone?: string;
   paymentMethod: string;
 }
 
@@ -82,6 +86,10 @@ export const orderService = {
           productId: Number(item.productId),
           quantity: item.quantity,
           shippingAddress: data.shippingAddress,
+          shippingCity: data.shippingCity,
+          shippingState: data.shippingState,
+          shippingPincode: data.shippingPincode,
+          customerPhone: data.customerPhone,
         });
         orders.push(response.data.data);
       }

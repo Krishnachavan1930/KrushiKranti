@@ -18,6 +18,7 @@ const checkoutSchema = z.object({
     phone: z.string().min(10, 'Invalid phone number'),
     address: z.string().min(10, 'Full address is required'),
     city: z.string().min(2, 'City is required'),
+    state: z.string().min(2, 'State is required'),
     zipCode: z.string().min(6, 'Invalid ZIP code'),
     paymentMethod: z.enum(['card', 'upi', 'cod']),
 });
@@ -61,7 +62,7 @@ export function CheckoutPage() {
     const onSubmit = async (data: CheckoutFormData) => {
         // Build shipping address string
         const shippingAddress = `${data.address}, ${data.city}, ${data.zipCode}`;
-        
+
         // Prepare order data from cart items
         // Note: item.productId is the actual product ID, item.id is the cart item ID
         const orderData = {
@@ -69,7 +70,11 @@ export function CheckoutPage() {
                 productId: item.productId,
                 quantity: item.quantity,
             })),
-            shippingAddress,
+            shippingAddress: data.address,
+            shippingCity: data.city,
+            shippingState: data.state,
+            shippingPincode: data.zipCode,
+            customerPhone: data.phone,
             paymentMethod: data.paymentMethod,
         };
 
@@ -222,6 +227,12 @@ export function CheckoutPage() {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
                                     <input {...register('city')} className="input-field" placeholder="Mumbai" />
                                     {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+                                    <input {...register('state')} className="input-field" placeholder="Maharashtra" />
+                                    {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state.message}</p>}
                                 </div>
 
                                 <div>

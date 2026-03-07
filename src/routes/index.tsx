@@ -119,9 +119,10 @@ const DeliveryTrackingPage = lazy(() =>
     default: m.DeliveryTrackingPage,
   }))
 );
-const OrderTrackingPage = lazy(() =>
-  import("../modules/orders/pages/OrderTrackingPage").then((m) => ({
-    default: m.OrderTrackingPage,
+
+const DeliveryDashboardPage = lazy(() =>
+  import("../modules/orders/pages/DeliveryDashboardPage").then((m) => ({
+    default: m.DeliveryDashboardPage,
   }))
 );
 
@@ -200,6 +201,11 @@ const CommissionPage = lazy(() =>
 const AdminLogsPage = lazy(() =>
   import("../modules/admin/pages/AdminLogsPage").then((m) => ({
     default: m.AdminLogsPage,
+  })),
+);
+const AdminOrdersPage = lazy(() =>
+  import("../modules/admin/pages/AdminOrdersPage").then((m) => ({
+    default: m.AdminOrdersPage,
   })),
 );
 
@@ -366,7 +372,15 @@ const router = createBrowserRouter([
         path: "orders/:id/track",
         element: (
           <SuspenseWrapper>
-            <OrderTrackingPage />
+            <DeliveryTrackingPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "delivery/orders",
+        element: (
+          <SuspenseWrapper>
+            <DeliveryDashboardPage />
           </SuspenseWrapper>
         ),
       },
@@ -570,6 +584,14 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <ManageUsersPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "orders",
+        element: (
+          <SuspenseWrapper>
+            <AdminOrdersPage />
           </SuspenseWrapper>
         ),
       },

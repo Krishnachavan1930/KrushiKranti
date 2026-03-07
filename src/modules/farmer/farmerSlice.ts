@@ -1,8 +1,13 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import type { FarmerProduct, FarmerStats, RevenueData, ProductFormData } from './types';
-import { productService } from '../product/productService';
-import type { CreateProductData } from '../product/productService';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import type {
+  FarmerProduct,
+  FarmerStats,
+  RevenueData,
+  ProductFormData,
+} from "./types";
+import { productService } from "../product/productService";
+import type { CreateProductData } from "../product/productService";
 
 interface FarmerState {
   products: FarmerProduct[];
@@ -21,18 +26,18 @@ const mockStats: FarmerStats = {
 };
 
 const mockRevenueData: RevenueData[] = [
-  { month: 'Jan', revenue: 18500 },
-  { month: 'Feb', revenue: 22000 },
-  { month: 'Mar', revenue: 19800 },
-  { month: 'Apr', revenue: 28500 },
-  { month: 'May', revenue: 32000 },
-  { month: 'Jun', revenue: 27500 },
-  { month: 'Jul', revenue: 35000 },
-  { month: 'Aug', revenue: 31000 },
-  { month: 'Sep', revenue: 29000 },
-  { month: 'Oct', revenue: 38000 },
-  { month: 'Nov', revenue: 42000 },
-  { month: 'Dec', revenue: 45000 },
+  { month: "Jan", revenue: 18500 },
+  { month: "Feb", revenue: 22000 },
+  { month: "Mar", revenue: 19800 },
+  { month: "Apr", revenue: 28500 },
+  { month: "May", revenue: 32000 },
+  { month: "Jun", revenue: 27500 },
+  { month: "Jul", revenue: 35000 },
+  { month: "Aug", revenue: 31000 },
+  { month: "Sep", revenue: 29000 },
+  { month: "Oct", revenue: 38000 },
+  { month: "Nov", revenue: 42000 },
+  { month: "Dec", revenue: 45000 },
 ];
 
 const initialState: FarmerState = {
@@ -54,19 +59,21 @@ const initialState: FarmerState = {
  */
 function toFarmerProduct(p: Record<string, unknown>): FarmerProduct {
   return {
-    id: String(p.id ?? ''),
-    name: (p.name as string) ?? '',
-    description: (p.description as string) ?? '',
-    category: (p.category as FarmerProduct['category']) ?? 'other',
+    id: String(p.id ?? ""),
+    name: (p.name as string) ?? "",
+    description: (p.description as string) ?? "",
+    category: (p.category as FarmerProduct["category"]) ?? "other",
     retailPrice: Number(p.retailPrice ?? 0),
     wholesalePrice: Number(p.wholesalePrice ?? 0),
     quantity: Number(p.quantity ?? p.stock ?? 0),
-    unit: (p.unit as string) ?? 'kg',
-    images: p.imageUrl ? [p.imageUrl as string] : (p.images as string[]) ?? [],
+    unit: (p.unit as string) ?? "kg",
+    images: p.imageUrl
+      ? [p.imageUrl as string]
+      : ((p.images as string[]) ?? []),
     organic: Boolean(p.organic),
-    status: (p.status as string) ?? 'ACTIVE',
-    createdAt: (p.createdAt as string) ?? '',
-    updatedAt: (p.updatedAt as string) ?? '',
+    status: (p.status as string) ?? "ACTIVE",
+    createdAt: (p.createdAt as string) ?? "",
+    updatedAt: (p.updatedAt as string) ?? "",
   };
 }
 
@@ -75,7 +82,7 @@ function toFarmerProduct(p: Record<string, unknown>): FarmerProduct {
 // ────────────────────────────────────────────
 
 export const fetchFarmerProducts = createAsyncThunk(
-  'farmer/fetchProducts',
+  "farmer/fetchProducts",
   async (_, { rejectWithValue }) => {
     try {
       const response = await productService.getMyProducts(1, 100);
@@ -84,11 +91,11 @@ export const fetchFarmerProducts = createAsyncThunk(
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
-  }
+  },
 );
 
 export const fetchFarmerStats = createAsyncThunk(
-  'farmer/fetchStats',
+  "farmer/fetchStats",
   async (_, { rejectWithValue }) => {
     try {
       // TODO: Replace with real stats API when available
@@ -97,11 +104,11 @@ export const fetchFarmerStats = createAsyncThunk(
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
-  }
+  },
 );
 
 export const addProduct = createAsyncThunk(
-  'farmer/addProduct',
+  "farmer/addProduct",
   async (productData: ProductFormData, { rejectWithValue }) => {
     try {
       const createData: CreateProductData = {
@@ -122,14 +129,14 @@ export const addProduct = createAsyncThunk(
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
-  }
+  },
 );
 
 export const updateProduct = createAsyncThunk(
-  'farmer/updateProduct',
+  "farmer/updateProduct",
   async (
     { id, data }: { id: string; data: ProductFormData },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const product = await productService.updateProduct({
@@ -149,11 +156,11 @@ export const updateProduct = createAsyncThunk(
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
-  }
+  },
 );
 
 export const deleteProduct = createAsyncThunk(
-  'farmer/deleteProduct',
+  "farmer/deleteProduct",
   async (id: string, { rejectWithValue }) => {
     try {
       await productService.deleteProduct(id);
@@ -161,11 +168,11 @@ export const deleteProduct = createAsyncThunk(
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
-  }
+  },
 );
 
 const farmerSlice = createSlice({
-  name: 'farmer',
+  name: "farmer",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -179,11 +186,14 @@ const farmerSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchFarmerProducts.fulfilled, (state, action: PayloadAction<FarmerProduct[]>) => {
-        state.isLoading = false;
-        state.products = action.payload;
-        state.stats.totalProducts = action.payload.length;
-      })
+      .addCase(
+        fetchFarmerProducts.fulfilled,
+        (state, action: PayloadAction<FarmerProduct[]>) => {
+          state.isLoading = false;
+          state.products = action.payload;
+          state.stats.totalProducts = action.payload.length;
+        },
+      )
       .addCase(fetchFarmerProducts.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
@@ -194,7 +204,10 @@ const farmerSlice = createSlice({
       })
       .addCase(fetchFarmerStats.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stats = { ...action.payload.stats, totalProducts: state.products.length };
+        state.stats = {
+          ...action.payload.stats,
+          totalProducts: state.products.length,
+        };
         state.revenueData = action.payload.revenueData;
       })
       .addCase(fetchFarmerStats.rejected, (state, action) => {
@@ -206,11 +219,14 @@ const farmerSlice = createSlice({
         state.isSubmitting = true;
         state.error = null;
       })
-      .addCase(addProduct.fulfilled, (state, action: PayloadAction<FarmerProduct>) => {
-        state.isSubmitting = false;
-        state.products.unshift(action.payload);
-        state.stats.totalProducts = state.products.length;
-      })
+      .addCase(
+        addProduct.fulfilled,
+        (state, action: PayloadAction<FarmerProduct>) => {
+          state.isSubmitting = false;
+          state.products.unshift(action.payload);
+          state.stats.totalProducts = state.products.length;
+        },
+      )
       .addCase(addProduct.rejected, (state, action) => {
         state.isSubmitting = false;
         state.error = action.payload as string;
@@ -220,13 +236,18 @@ const farmerSlice = createSlice({
         state.isSubmitting = true;
         state.error = null;
       })
-      .addCase(updateProduct.fulfilled, (state, action: PayloadAction<FarmerProduct>) => {
-        state.isSubmitting = false;
-        const index = state.products.findIndex((p) => p.id === action.payload.id);
-        if (index !== -1) {
-          state.products[index] = action.payload;
-        }
-      })
+      .addCase(
+        updateProduct.fulfilled,
+        (state, action: PayloadAction<FarmerProduct>) => {
+          state.isSubmitting = false;
+          const index = state.products.findIndex(
+            (p) => p.id === action.payload.id,
+          );
+          if (index !== -1) {
+            state.products[index] = action.payload;
+          }
+        },
+      )
       .addCase(updateProduct.rejected, (state, action) => {
         state.isSubmitting = false;
         state.error = action.payload as string;
@@ -235,11 +256,16 @@ const farmerSlice = createSlice({
       .addCase(deleteProduct.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(deleteProduct.fulfilled, (state, action: PayloadAction<string>) => {
-        state.isLoading = false;
-        state.products = state.products.filter((p) => p.id !== action.payload);
-        state.stats.totalProducts = state.products.length;
-      })
+      .addCase(
+        deleteProduct.fulfilled,
+        (state, action: PayloadAction<string>) => {
+          state.isLoading = false;
+          state.products = state.products.filter(
+            (p) => p.id !== action.payload,
+          );
+          state.stats.totalProducts = state.products.length;
+        },
+      )
       .addCase(deleteProduct.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;

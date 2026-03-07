@@ -105,7 +105,6 @@ const STATUS_META: Record<
     badge:
       "text-purple-700 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-900/20 dark:border-purple-800",
   },
-  },
   delivered: {
     label: "Delivered",
     icon: RiCheckboxCircleLine,
@@ -207,13 +206,12 @@ function OrderTimeline({ status }: { status: string }) {
           <div key={step} className="flex items-start gap-3 mb-0">
             <div className="flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center border-2 shrink-0 ${
-                  active
-                    ? "border-green-600 bg-green-600 text-white"
-                    : done
-                      ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600"
-                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-300"
-                }`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center border-2 shrink-0 ${active
+                  ? "border-green-600 bg-green-600 text-white"
+                  : done
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-300"
+                  }`}
               >
                 <Icon size={13} />
               </div>
@@ -244,10 +242,10 @@ function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
   const total = Number(order.totalAmount ?? order.totalPrice ?? 0);
   const orderDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
     : "";
 
   return (
@@ -347,13 +345,12 @@ function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
                 </p>
               </div>
               <span
-                className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${
-                  order.paymentStatus === "completed"
-                    ? "text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30"
-                    : order.paymentStatus === "pending"
-                      ? "text-yellow-700 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30"
-                      : "text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30"
-                }`}
+                className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${order.paymentStatus === "completed"
+                  ? "text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30"
+                  : order.paymentStatus === "pending"
+                    ? "text-yellow-700 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30"
+                    : "text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30"
+                  }`}
               >
                 {order.paymentStatus}
               </span>
@@ -609,11 +606,10 @@ export function FarmerOrdersPage() {
               <button
                 key={s.value}
                 onClick={() => handleStatusFilter(s.value)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
-                  statusFilter === s.value
-                    ? "bg-green-600 text-white border-green-600"
-                    : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${statusFilter === s.value
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
               >
                 {s.label}
               </button>
@@ -680,10 +676,10 @@ export function FarmerOrdersPage() {
                   const farmerEarnings = Number(order.farmerAmount ?? 0);
                   const orderDate = order.createdAt
                     ? new Date(order.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                     : "";
 
                   return (
@@ -776,6 +772,13 @@ export function FarmerOrdersPage() {
                             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                           >
                             <RiEditLine size={15} />
+                          </button>
+                          <button
+                            title="Track Order"
+                            onClick={() => window.open(`/orders/${order.id}/track`, "_blank")}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                          >
+                            <RiCarLine size={15} />
                           </button>
                           <button
                             title="Contact Customer"

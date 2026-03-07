@@ -130,9 +130,7 @@ export const productService = {
       if (data.imageUrl) formData.append('imageUrl', data.imageUrl);
       if (data.imageFile) formData.append('imageFile', data.imageFile);
 
-      const response = await api.post<{ data: Record<string, unknown> }>('/v1/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post<{ data: Record<string, unknown> }>('/v1/products', formData);
       return transformProduct(response.data.data);
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to create product'));
@@ -157,9 +155,7 @@ export const productService = {
       if (data.imageUrl) formData.append('imageUrl', data.imageUrl);
       if (data.imageFile) formData.append('imageFile', data.imageFile);
 
-      const response = await api.put<{ data: Record<string, unknown> }>(`/v1/products/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.put<{ data: Record<string, unknown> }>(`/v1/products/${id}`, formData);
       return transformProduct(response.data.data);
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to update product'));

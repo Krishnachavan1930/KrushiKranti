@@ -15,6 +15,7 @@ export function AdminLayout() {
 
     const menuItems = [
         { to: '/admin/dashboard', label: t('admin.nav.overview'), icon: RiDashboardLine },
+        { to: '/admin/orders', label: 'Orders', icon: RiShoppingBagLine },
         { to: '/admin/users', label: t('admin.nav.users'), icon: RiUserLine },
         { to: '/admin/products', label: t('admin.nav.products'), icon: RiPlantLine },
         { to: '/admin/fraud', label: t('admin.nav.fraud'), icon: RiShieldLine },

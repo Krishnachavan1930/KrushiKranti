@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
     RiArrowLeftLine,
     RiShoppingBagLine,
@@ -10,7 +11,9 @@ import {
     RiUserLine,
     RiCalendarLine,
     RiInformationLine,
+    RiLoader4Line,
 } from 'react-icons/ri';
+import { trackingService, type TrackingInfo } from '../trackingService';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type TrackingStep = {
@@ -19,35 +22,24 @@ type TrackingStep = {
     description: string;
     responsible: string;
     icon: React.ElementType;
-    timestamp: string | null;
     done: boolean;
 };
 
-// ── Mock order ───────────────────────────────────────────────────────────────
-const MOCK_ORDER = {
-    id: 'ORD-001',
-    product: 'Organic Tomatoes',
-    qty: '5 kg',
-    price: '₹40/kg',
-    total: 200,
-    orderDate: '1 Mar 2026, 9:30 AM',
-    estimatedDelivery: '5 Mar 2026',
-    deliveryAddress: '12, Shivaji Nagar, Pune, Maharashtra – 411005',
-    partner: {
-        name: 'Ramesh Delivery',
-        phone: '+91 98765 12345',
-        vehicle: 'MH-12-AB-1234',
-    },
-    currentStep: 3,   // 0-indexed
-    steps: [
+const buildSteps = (orderStatus: string, deliveryStatus: string): TrackingStep[] => {
+    const statusOrder = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+    const deliveryOrder = ['PENDING', 'PICKUP_SCHEDULED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+
+    const currentOrderIdx = statusOrder.indexOf(orderStatus?.toUpperCase() || 'PENDING');
+    const currentDeliveryIdx = deliveryOrder.indexOf(deliveryStatus?.toUpperCase() || 'PENDING');
+
+    return [
         {
             key: 'placed',
             label: 'Order Placed',
             description: 'Your order has been placed successfully.',
             responsible: 'You (Customer)',
             icon: RiShoppingBagLine,
-            timestamp: '1 Mar 2026, 9:30 AM',
-            done: true,
+            done: currentOrderIdx >= 0,
         },
         {
             key: 'confirmed',
@@ -55,17 +47,15 @@ const MOCK_ORDER = {
             description: 'Farmer has confirmed and accepted your order.',
             responsible: 'Farmer',
             icon: RiCheckboxCircleLine,
-            timestamp: '1 Mar 2026, 11:00 AM',
-            done: true,
+            done: currentOrderIdx >= 1,
         },
         {
             key: 'shipped',
             label: 'Shipped',
             description: 'Order has been picked up and is in transit.',
-            responsible: 'Farmer / Wholesaler',
+            responsible: 'Farmer / Delivery Partner',
             icon: RiTruckLine,
-            timestamp: '2 Mar 2026, 8:00 AM',
-            done: true,
+            done: currentOrderIdx >= 3 || currentDeliveryIdx >= 2,
         },
         {
             key: 'out_for_delivery',
@@ -73,25 +63,90 @@ const MOCK_ORDER = {
             description: 'Delivery partner is on the way to your location.',
             responsible: 'Delivery Partner',
             icon: RiMapPinLine,
-            timestamp: '4 Mar 2026, 7:00 AM',
-            done: true,
+            done: currentDeliveryIdx >= 4,
         },
         {
             key: 'delivered',
             label: 'Delivered',
-            description: 'Order will be delivered to your address.',
+            description: 'Order has been delivered to your address.',
             responsible: 'Delivery Partner',
             icon: RiCheckDoubleLine,
-            timestamp: null,
-            done: false,
+            done: currentOrderIdx >= 4 || currentDeliveryIdx >= 5,
         },
-    ] as TrackingStep[],
+    ];
 };
 
 export function DeliveryTrackingPage() {
     const { id } = useParams<{ id: string }>();
-    const order = { ...MOCK_ORDER, id: id || MOCK_ORDER.id };
-    const currentStep = order.currentStep;
+    const [tracking, setTracking] = useState<TrackingInfo | null>(null);
+    const [orderDetails, setOrderDetails] = useState<Record<string, unknown> | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!id) return;
+        const load = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const [trackingData, orderData] = await Promise.all([
+                    trackingService.getOrderTracking(id),
+                    trackingService.getOrderById(id),
+                ]);
+                setTracking(trackingData);
+                setOrderDetails(orderData as unknown as Record<string, unknown>);
+            } catch (err) {
+                setError((err as Error).message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        load();
+    }, [id]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center py-32">
+                <RiLoader4Line size={32} className="text-green-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="max-w-2xl space-y-4">
+                <Link
+                    to="/orders"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400"
+                >
+                    <RiArrowLeftLine size={16} />
+                    Back to Orders
+                </Link>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400">
+                    {error}
+                </div>
+            </div>
+        );
+    }
+
+    const orderStatus = tracking?.orderStatus || 'PENDING';
+    const deliveryStatus = tracking?.deliveryStatus || 'PENDING';
+    const steps = buildSteps(orderStatus, deliveryStatus);
+    const currentStepIdx = [...steps].reverse().findIndex((s) => s.done);
+    const currentStep = currentStepIdx >= 0 ? steps.length - 1 - currentStepIdx : 0;
+
+    const productName = (orderDetails?.productName as string) || 'Product';
+    const quantity = (orderDetails?.quantity as number) || 0;
+    const totalPrice = (orderDetails?.totalAmount as number) || (orderDetails?.totalPrice as number) || 0;
+    const createdAt = (orderDetails?.createdAt as string) || '';
+    const shippingAddress = [
+        orderDetails?.shippingAddress,
+        orderDetails?.shippingCity,
+        orderDetails?.shippingState,
+        orderDetails?.shippingPincode,
+    ]
+        .filter(Boolean)
+        .join(', ');
 
     return (
         <div className="space-y-6 max-w-2xl">
@@ -108,7 +163,7 @@ export function DeliveryTrackingPage() {
             <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Delivery Tracking</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    Order #{order.id} · {order.product}
+                    Order #{tracking?.orderNumber || id} · {productName}
                 </p>
             </div>
 
@@ -116,10 +171,19 @@ export function DeliveryTrackingPage() {
             <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800">
                 <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
-                        { label: 'Product', value: order.product },
-                        { label: 'Qty', value: order.qty },
-                        { label: 'Total', value: `₹${order.total}` },
-                        { label: 'Order Date', value: order.orderDate },
+                        { label: 'Product', value: productName },
+                        { label: 'Qty', value: String(quantity) },
+                        { label: 'Total', value: `₹${totalPrice}` },
+                        {
+                            label: 'Order Date',
+                            value: createdAt
+                                ? new Date(createdAt).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                })
+                                : '—',
+                        },
                     ].map((row) => (
                         <div key={row.label}>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{row.label}</p>
@@ -132,11 +196,16 @@ export function DeliveryTrackingPage() {
                 <div className="px-5 py-4 flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <RiCalendarLine size={15} className="text-slate-400 shrink-0" />
-                        <span>Estimated delivery: <strong className="text-slate-900 dark:text-white">{order.estimatedDelivery}</strong></span>
+                        <span>
+                            Estimated delivery:{' '}
+                            <strong className="text-slate-900 dark:text-white">
+                                {tracking?.estimatedDelivery || '—'}
+                            </strong>
+                        </span>
                     </div>
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded border text-xs font-semibold text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
                         <RiMapPinLine size={12} />
-                        Out for Delivery
+                        {deliveryStatus?.replace(/_/g, ' ') || 'PENDING'}
                     </span>
                 </div>
             </div>
@@ -150,7 +219,7 @@ export function DeliveryTrackingPage() {
                     <div className="absolute left-[19px] top-5 bottom-5 w-px bg-slate-200 dark:bg-slate-700" />
 
                     <div className="space-y-5">
-                        {order.steps.map((step, idx) => {
+                        {steps.map((step, idx) => {
                             const Icon = step.icon;
                             const isActive = idx === currentStep;
                             const isFuture = idx > currentStep;
@@ -187,17 +256,14 @@ export function DeliveryTrackingPage() {
                                             )}
                                         </div>
 
-                                        <p className={`text-xs mt-0.5 ${isFuture ? 'text-slate-400 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>
+                                        <p
+                                            className={`text-xs mt-0.5 ${isFuture ? 'text-slate-400 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'
+                                                }`}
+                                        >
                                             {step.description}
                                         </p>
 
                                         <div className="flex items-center gap-4 mt-1.5 flex-wrap">
-                                            {step.timestamp && (
-                                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                                                    <RiCalendarLine size={10} />
-                                                    {step.timestamp}
-                                                </span>
-                                            )}
                                             <span className="text-[10px] text-slate-400 flex items-center gap-1">
                                                 <RiUserLine size={10} />
                                                 {step.responsible}
@@ -217,15 +283,24 @@ export function DeliveryTrackingPage() {
                     <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-1.5">
                         <RiUserLine size={12} /> Delivery Partner
                     </h3>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{order.partner.name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{order.partner.vehicle}</p>
-                    <a
-                        href={`tel:${order.partner.phone}`}
-                        className="flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400 mt-3"
-                    >
-                        <RiPhoneLine size={14} />
-                        {order.partner.phone}
-                    </a>
+                    {tracking?.deliveryPartnerName ? (
+                        <>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {tracking.deliveryPartnerName}
+                            </p>
+                            {tracking.deliveryPartnerPhone && (
+                                <a
+                                    href={`tel:${tracking.deliveryPartnerPhone}`}
+                                    className="flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400 mt-3"
+                                >
+                                    <RiPhoneLine size={14} />
+                                    {tracking.deliveryPartnerPhone}
+                                </a>
+                            )}
+                        </>
+                    ) : (
+                        <p className="text-sm text-slate-400 dark:text-slate-500">Not yet assigned</p>
+                    )}
                 </div>
 
                 <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
@@ -233,16 +308,49 @@ export function DeliveryTrackingPage() {
                         <RiMapPinLine size={12} /> Delivery Address
                     </h3>
                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        {order.deliveryAddress}
+                        {shippingAddress || 'Address not available'}
                     </p>
                 </div>
             </div>
+
+            {/* Courier info */}
+            {tracking?.courierName && (
+                <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                        Courier Details
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-xs text-slate-400">Courier</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{tracking.courierName}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400">AWB Code</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {tracking.awbCode || '—'}
+                            </p>
+                        </div>
+                    </div>
+                    {tracking.trackingUrl && (
+                        <a
+                            href={tracking.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium mt-3"
+                        >
+                            Track on courier website →
+                        </a>
+                    )}
+                </div>
+            )}
 
             {/* Responsibility note */}
             <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">
                 <RiInformationLine size={16} className="text-slate-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                    <strong className="text-slate-700 dark:text-slate-300">Status Responsibilities:</strong> Order confirmation is updated by the Farmer. Shipping status is updated by the Farmer or Wholesaler. Out-for-delivery and final delivery are updated by the Delivery Partner.
+                    <strong className="text-slate-700 dark:text-slate-300">Status Responsibilities:</strong> Order
+                    confirmation is updated by the Farmer. Shipping status is updated by the Farmer or Wholesaler.
+                    Out-for-delivery and final delivery are updated by the Delivery Partner.
                 </p>
             </div>
         </div>

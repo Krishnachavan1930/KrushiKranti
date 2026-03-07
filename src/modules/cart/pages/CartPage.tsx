@@ -1,27 +1,45 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
-import { removeItem, updateQuantity, clearCart } from '../cartSlice';
+import { removeCartItem, updateQuantity, clearCart, fetchCart } from '../cartSlice';
 import type { RootState } from '../../../app/store';
 import toast from 'react-hot-toast';
 
 export function CartPage() {
   const dispatch = useAppDispatch();
-  const { items, subtotal, itemCount } = useAppSelector((state: RootState) => state.cart);
+  const { items, subtotal, itemCount, isLoading } = useAppSelector((state: RootState) => state.cart);
 
-  const handleQuantityChange = (id: string, newQuantity: number) => {
-    dispatch(updateQuantity({ id, quantity: newQuantity }));
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
+  const handleQuantityChange = async (productId: string, newQuantity: number) => {
+    try {
+      await dispatch(updateQuantity({ productId, quantity: newQuantity })).unwrap();
+    } catch {
+      toast.error('Failed to update quantity');
+    }
   };
 
-  const handleRemoveItem = (id: string, name: string) => {
-    dispatch(removeItem(id));
-    toast.success(`${name} removed from cart`);
+  const handleRemoveItem = async (productId: string, name: string) => {
+    try {
+      await dispatch(removeCartItem(productId)).unwrap();
+      toast.success(`${name} removed from cart`);
+    } catch {
+      toast.error('Failed to remove item');
+    }
   };
 
-  const handleClearCart = () => {
-    dispatch(clearCart());
-    toast.success('Cart cleared');
+  const handleClearCart = async () => {
+    if (!window.confirm("Are you sure you want to clear your entire cart?")) return;
+    try {
+      await dispatch(clearCart()).unwrap();
+      toast.success('Cart cleared');
+    } catch {
+      toast.error('Failed to clear cart');
+    }
   };
 
   if (items.length === 0) {
@@ -77,41 +95,46 @@ export function CartPage() {
                   <motion.div
                     key={item.id}
                     layout
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9, x: -100 }}
-                    transition={{ duration: 0.3 }}
-                    className="card flex flex-col sm:flex-row gap-4"
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                    className="flex flex-col sm:flex-row gap-6 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow relative"
                   >
-                    <Link to={`/products/${item.productId}`} className="shrink-0">
+                    <div className="w-full sm:w-32 h-32 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 overflow-hidden flex-shrink-0">
                       <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full sm:w-32 h-32 object-cover rounded-lg"
+                        src={item.productImage}
+                        alt={item.productName}
+                        className="w-full h-full object-cover"
                       />
-                    </Link>
+                    </div>
 
-                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex-1">
-                        <Link
-                          to={`/products/${item.productId}`}
-                          className="text-lg font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                        >
-                          {item.name}
-                        </Link>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                          ₹{item.price}/{item.unit}
-                        </p>
-                        <p className="text-primary-600 dark:text-primary-400 font-semibold mt-2">
-                          ₹{item.price * item.quantity}
-                        </p>
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <Link to={`/products/${item.productId}`} className="hover:text-green-600 transition-colors">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                              {item.productName}
+                            </h3>
+                          </Link>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Unit: {item.unit}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                            ₹{(item.wholesalePrice * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-6">
                         <div className="flex items-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                           <motion.button
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                            onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                             className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
@@ -122,7 +145,7 @@ export function CartPage() {
                           </span>
                           <motion.button
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                            onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
                             disabled={item.quantity >= item.maxStock}
                             className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
@@ -133,7 +156,7 @@ export function CartPage() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => handleRemoveItem(item.id, item.name)}
+                          onClick={() => handleRemoveItem(item.productId, item.productName)}
                           className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                         >
                           <Trash2 size={20} />

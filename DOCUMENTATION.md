@@ -508,6 +508,101 @@ npm run build  # Check for TypeScript errors
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview build |
+
+---
+
+## 🚚 Shiprocket Delivery Integration
+
+### Overview
+The platform integrates with Shiprocket for order delivery and real-time tracking.
+
+### Features
+- Automatic shipment creation on order confirmation
+- Real-time delivery status updates via WebSocket
+- Order tracking page with timeline visualization
+- Push notifications for delivery status changes
+
+### Order Status Flow
+```
+PLACED → CONFIRMED → PROCESSING → SHIPPED → OUT_FOR_DELIVERY → DELIVERED
+                                                            ↳ CANCELLED
+```
+
+### Tracking Page (`/orders/:orderId/tracking`)
+- Displays order details (ID, date, status)
+- Visual timeline with delivery milestones
+- Status badges with color coding
+- Delivery partner and AWB information
+
+---
+
+## 🔔 Real-Time Notification System
+
+### Overview
+WebSocket-based notification system for real-time updates across all user roles.
+
+### Technology Stack
+- **Frontend**: socket.io-client 4.8.3
+- **Backend**: Spring Boot WebSocket with Socket.IO
+
+### WebSocket Service (`services/websocketService.ts`)
+```typescript
+// Auto-connects when user authenticates
+websocketService.connect(userId);
+
+// Subscribes to channels based on role
+websocketService.subscribeToUserNotifications(userId);
+websocketService.subscribeToFarmerOrders(farmerId);
+```
+
+### WebSocket Initialization
+The `useWebSocket` hook in `shared/hooks/useWebSocket.ts` automatically:
+- Connects when user is authenticated
+- Subscribes to appropriate channels based on role
+- Disconnects on logout
+
+### Notification Types
+| Type | Icon | Description |
+|------|------|-------------|
+| `order` | Package | New order placed |
+| `payment` | CreditCard | Payment received |
+| `message` | MessageCircle | New chat message |
+| `system` | Bell | System announcements |
+| `delivery` | Truck | Delivery status update |
+| `order_status` | Clock | Order status change |
+
+### Browser Notifications
+- Permission requested on first connection
+- Native browser notifications for delivery updates
+- Shows notification even when tab is in background
+
+### Integration Points
+| Component | Purpose |
+|-----------|---------|
+| `App.tsx` → `WebSocketInitializer` | Initializes connection |
+| `NotificationDropdown.tsx` | Displays notifications |
+| `OrderTrackingPage.tsx` | Shows delivery updates |
+| `FarmerOrdersPage.tsx` | Real-time order notifications |
+
+---
+
+## 📊 Commission & Analytics
+
+### Admin Dashboard
+- Total orders, revenue, and commission tracking
+- 10% commission rate on all farmer sales
+- Revenue distribution: 90% to farmer, 10% to platform
+
+### Stats Endpoints
+```typescript
+// Admin stats
+orderService.getAdminStats()
+// Returns: { totalOrders, totalRevenue, totalCommission, pendingOrders, shippedOrders, deliveredOrders }
+
+// Farmer stats  
+orderService.getFarmerStats()
+// Returns: { totalOrders, totalEarnings, pendingOrders, completedOrders }
+```
 | `npm run lint` | Run ESLint |
 
 ---

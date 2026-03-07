@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Check, Heart, Loader2, Minus, Plus, Twitter, Facebook, Linkedin, Instagram } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { fetchProductById, clearSelectedProduct } from '../productSlice';
-import { addItem } from '../../cart/cartSlice';
+import { addToCart } from '../../cart/cartSlice';
 import { addToWishlist, removeFromWishlist } from '../../wishlist/wishlistSlice';
 import type { RootState } from '../../../app/store';
 import toast from 'react-hot-toast';
@@ -53,19 +53,17 @@ export function ProductDetailPage() {
     setActiveImage(0);
   }, [product?.id]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    dispatch(addItem({
-      productId: product.id,
-      name: product.name,
-      image: product.images[0],
-      price: product.retailPrice,
-      wholesalePrice: product.wholesalePrice,
-      quantity: quantity,
-      unit: product.unit,
-      maxStock: product.stock,
-    }));
-    toast.success(`${product.name} added to cart!`);
+    try {
+      await dispatch(addToCart({
+        productId: product.id,
+        quantity: quantity,
+      })).unwrap();
+      toast.success(`${product.name} added to cart!`);
+    } catch {
+      toast.error('Please log in to add items to your cart');
+    }
   };
 
   const handleWishlist = () => {

@@ -1,95 +1,209 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CartItem } from './types';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { cartService } from './cartService';
+import type { CartItemResponse, CartResponse, AddToCartRequest, UpdateCartRequest } from './cartService';
 
-interface CartState {
-  items: CartItem[];
+export interface CartState {
+  items: CartItemResponse[];
   subtotal: number;
   itemCount: number;
+  isLoading: boolean;
+  error: string | null;
 }
 
-const loadCartFromStorage = (): CartState => {
-  try {
-    const stored = localStorage.getItem('cart');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        items: parsed.items || [],
-        subtotal: calculateSubtotal(parsed.items || []),
-        itemCount: calculateItemCount(parsed.items || []),
-      };
+const initialState: CartState = {
+  items: [],
+  subtotal: 0,
+  itemCount: 0,
+  isLoading: false,
+  error: null,
+};
+
+export const fetchCart = createAsyncThunk(
+  'cart/fetchCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await cartService.getCart();
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
     }
-  } catch {
-    // Ignore parse errors
   }
-  return { items: [], subtotal: 0, itemCount: 0 };
-};
+);
 
-const saveCartToStorage = (items: CartItem[]) => {
-  localStorage.setItem('cart', JSON.stringify({ items }));
-};
+export const addToCart = createAsyncThunk(
+  'cart/addToCart',
+  async (request: AddToCartRequest, { rejectWithValue }) => {
+    try {
+      await cartService.addToCart(request);
+      // Fetch cart again to update the whole object, this is to ensure sync
+      const fullCart = await cartService.getCart();
+      return fullCart;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
 
-const calculateSubtotal = (items: CartItem[]): number => {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-};
+export const updateQuantity = createAsyncThunk(
+  'cart/updateQuantity',
+  async (request: UpdateCartRequest, { rejectWithValue }) => {
+    try {
+      await cartService.updateCartItem(request);
+      const fullCart = await cartService.getCart();
+      return fullCart;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
 
-const calculateItemCount = (items: CartItem[]): number => {
-  return items.reduce((count, item) => count + item.quantity, 0);
-};
+export const removeCartItem = createAsyncThunk(
+  'cart/removeCartItem',
+  async (productId: string, { rejectWithValue }) => {
+    try {
+      await cartService.removeCartItem(productId);
+      const fullCart = await cartService.getCart();
+      return fullCart;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
 
-const initialState: CartState = loadCartFromStorage();
+export const clearCart = createAsyncThunk(
+  'cart/clearCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      await cartService.clearCart();
+      return { items: [], cartTotal: 0, itemCount: 0 };
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const fetchCartItemCount = createAsyncThunk(
+  'cart/fetchCount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const count = await cartService.getCartItemCount();
+      return count;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
 
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    addItem: (state, action: PayloadAction<Omit<CartItem, 'id'>>) => {
-      const existingItem = state.items.find(
-        (item) => item.productId === action.payload.productId
-      );
-
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + action.payload.quantity;
-        existingItem.quantity = Math.min(newQuantity, existingItem.maxStock);
-      } else {
-        state.items.push({
-          ...action.payload,
-          id: `cart-${action.payload.productId}-${Date.now()}`,
-        });
-      }
-
-      state.subtotal = calculateSubtotal(state.items);
-      state.itemCount = calculateItemCount(state.items);
-      saveCartToStorage(state.items);
+    clearError: (state) => {
+      state.error = null;
     },
-
-    removeItem: (state, action: PayloadAction<string>) => {
-      state.items = state.items.filter((item) => item.id !== action.payload);
-      state.subtotal = calculateSubtotal(state.items);
-      state.itemCount = calculateItemCount(state.items);
-      saveCartToStorage(state.items);
-    },
-
-    updateQuantity: (
-      state,
-      action: PayloadAction<{ id: string; quantity: number }>
-    ) => {
-      const item = state.items.find((i) => i.id === action.payload.id);
-      if (item) {
-        item.quantity = Math.max(1, Math.min(action.payload.quantity, item.maxStock));
-      }
-      state.subtotal = calculateSubtotal(state.items);
-      state.itemCount = calculateItemCount(state.items);
-      saveCartToStorage(state.items);
-    },
-
-    clearCart: (state) => {
+    resetCart: (state) => {
       state.items = [];
       state.subtotal = 0;
       state.itemCount = 0;
-      localStorage.removeItem('cart');
-    },
+      state.error = null;
+    }
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch Cart
+      .addCase(fetchCart.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchCart.fulfilled, (state, action: PayloadAction<CartResponse>) => {
+        state.isLoading = false;
+        state.items = action.payload.items;
+        state.subtotal = action.payload.cartTotal;
+        state.itemCount = action.payload.itemCount;
+      })
+      .addCase(fetchCart.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Add To Cart
+      .addCase(addToCart.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(addToCart.fulfilled, (state, action: PayloadAction<CartResponse>) => {
+        state.isLoading = false;
+        state.items = action.payload.items;
+        state.subtotal = action.payload.cartTotal;
+        state.itemCount = action.payload.itemCount;
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Update Quantity
+      .addCase(updateQuantity.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateQuantity.fulfilled, (state, action: PayloadAction<CartResponse>) => {
+        state.isLoading = false;
+        state.items = action.payload.items;
+        state.subtotal = action.payload.cartTotal;
+        state.itemCount = action.payload.itemCount;
+      })
+      .addCase(updateQuantity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Remove Item
+      .addCase(removeCartItem.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(removeCartItem.fulfilled, (state, action: PayloadAction<CartResponse>) => {
+        state.isLoading = false;
+        state.items = action.payload.items;
+        state.subtotal = action.payload.cartTotal;
+        state.itemCount = action.payload.itemCount;
+      })
+      .addCase(removeCartItem.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Clear Cart
+      .addCase(clearCart.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(clearCart.fulfilled, (state, action: PayloadAction<CartResponse>) => {
+        state.isLoading = false;
+        state.items = action.payload.items;
+        state.subtotal = action.payload.cartTotal;
+        state.itemCount = action.payload.itemCount;
+      })
+      .addCase(clearCart.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Fetch Count
+      .addCase(fetchCartItemCount.fulfilled, (state, action: PayloadAction<number>) => {
+        state.itemCount = action.payload;
+      })
+
+      // Auto-clear cart on logout directly matching the action type
+      .addMatcher((action) => action.type === 'auth/logout/fulfilled', (state) => {
+        state.items = [];
+        state.subtotal = 0;
+        state.itemCount = 0;
+        state.error = null;
+      });
   },
 });
 
-export const { addItem, removeItem, updateQuantity, clearCart } = cartSlice.actions;
+export const { clearError, resetCart } = cartSlice.actions;
 export default cartSlice.reducer;

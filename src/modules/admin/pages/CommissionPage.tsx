@@ -1,7 +1,19 @@
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { IndianRupee, TrendingUp, Percent } from 'lucide-react';
+import { IndianRupee, TrendingUp, Percent, Loader } from 'lucide-react';
+import { orderService } from '../../orders/orderService';
 
-// Mock commission data
+// Interface for admin stats
+interface AdminStats {
+  totalOrders: number;
+  totalRevenue: number;
+  totalCommission: number;
+  pendingOrders: number;
+  shippedOrders: number;
+  deliveredOrders: number;
+}
+
+// Mock commission data (placeholder - can be replaced with real API)
 const monthlyCommissions = [
   { month: 'Jan', commission: 42500, orders: 850 },
   { month: 'Feb', commission: 46000, orders: 920 },
@@ -22,11 +34,51 @@ const recentCommissions = [
   { id: '8', orderId: 'ORD-2024-008', orderAmount: 4200, commission: 210, farmerName: 'Meena Devi', date: '2024-01-22' },
 ];
 
-const totalEarnings = monthlyCommissions.reduce((acc, curr) => acc + curr.commission, 0);
-const totalOrders = monthlyCommissions.reduce((acc, curr) => acc + curr.orders, 0);
-const avgCommission = Math.round(totalEarnings / totalOrders);
-
 export function CommissionPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoading(true);
+        const data = await orderService.getAdminStats();
+        setStats(data);
+      } catch (err) {
+        setError((err as Error).message);
+        console.error('Failed to load admin stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+
+  // Use real data if available, else fall back to mock values
+  const totalEarnings = stats?.totalCommission ?? monthlyCommissions.reduce((acc, curr) => acc + curr.commission, 0);
+  const totalOrders = stats?.totalOrders ?? monthlyCommissions.reduce((acc, curr) => acc + curr.orders, 0);
+  const avgCommission = totalOrders > 0 ? Math.round(totalEarnings / totalOrders) : 0;
+  const totalRevenue = stats?.totalRevenue ?? totalEarnings * 20; // 5% commission rate
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader className="animate-spin text-green-600" size={48} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Failed to load commission data</p>
+          <p className="text-gray-500 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -36,16 +88,27 @@ export function CommissionPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-green-600 text-white rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <IndianRupee size={20} />
             </div>
-            <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded">+14% vs last mo</span>
+            <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded">10% Rate</span>
           </div>
-          <p className="text-green-100 text-xs uppercase font-medium">Platform Earnings</p>
+          <p className="text-green-100 text-xs uppercase font-medium">Platform Commission</p>
           <p className="text-2xl font-bold">₹{totalEarnings.toLocaleString()}</p>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <IndianRupee className="text-blue-600" size={20} />
+            </div>
+            <span className="text-xs font-medium text-blue-600">Total</span>
+          </div>
+          <p className="text-gray-500 text-xs uppercase font-medium">Total Revenue</p>
+          <p className="text-2xl font-bold text-gray-900">₹{totalRevenue.toLocaleString()}</p>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -53,7 +116,7 @@ export function CommissionPage() {
             <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
               <Percent className="text-yellow-600" size={20} />
             </div>
-            <span className="text-xs font-medium text-green-600">5% Rate</span>
+            <span className="text-xs font-medium text-green-600">10% Rate</span>
           </div>
           <p className="text-gray-500 text-xs uppercase font-medium">Avg Commission/Order</p>
           <p className="text-2xl font-bold text-gray-900">₹{avgCommission}</p>
@@ -105,7 +168,7 @@ export function CommissionPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Farmer</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Date</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Order Amount</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Commission (5%)</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Commission (10%)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

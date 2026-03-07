@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { FarmerProduct, FarmerStats, RevenueData, ProductFormData } from './types';
+import { productService } from '../product/productService';
+import type { CreateProductData } from '../product/productService';
 
 interface FarmerState {
   products: FarmerProduct[];
@@ -11,57 +13,11 @@ interface FarmerState {
   error: string | null;
 }
 
-// Mock data
-const mockProducts: FarmerProduct[] = [
-  {
-    id: '1',
-    name: 'Organic Tomatoes',
-    description: 'Fresh organic tomatoes from our farm',
-    category: 'vegetables',
-    retailPrice: 60,
-    wholesalePrice: 45,
-    quantity: 500,
-    unit: 'kg',
-    images: ['https://images.unsplash.com/photo-1546470427-227c7a3e9853?w=400'],
-    organic: true,
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-20',
-  },
-  {
-    id: '2',
-    name: 'Fresh Spinach',
-    description: 'Nutrient-rich spinach leaves',
-    category: 'vegetables',
-    retailPrice: 40,
-    wholesalePrice: 30,
-    quantity: 200,
-    unit: 'kg',
-    images: ['https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400'],
-    organic: true,
-    createdAt: '2024-01-18',
-    updatedAt: '2024-01-22',
-  },
-  {
-    id: '3',
-    name: 'Basmati Rice',
-    description: 'Premium quality basmati rice',
-    category: 'grains',
-    retailPrice: 120,
-    wholesalePrice: 95,
-    quantity: 1000,
-    unit: 'kg',
-    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'],
-    organic: false,
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-25',
-  },
-];
-
 const mockStats: FarmerStats = {
-  totalProducts: 12,
-  totalOrders: 156,
-  totalRevenue: 245800,
-  pendingOrders: 8,
+  totalProducts: 0,
+  totalOrders: 0,
+  totalRevenue: 0,
+  pendingOrders: 0,
 };
 
 const mockRevenueData: RevenueData[] = [
@@ -93,14 +49,38 @@ const initialState: FarmerState = {
   error: null,
 };
 
-// Async thunks
+/**
+ * Transform a backend Product (from productService) into a FarmerProduct
+ */
+function toFarmerProduct(p: Record<string, unknown>): FarmerProduct {
+  return {
+    id: String(p.id ?? ''),
+    name: (p.name as string) ?? '',
+    description: (p.description as string) ?? '',
+    category: (p.category as FarmerProduct['category']) ?? 'other',
+    retailPrice: Number(p.retailPrice ?? 0),
+    wholesalePrice: Number(p.wholesalePrice ?? 0),
+    quantity: Number(p.quantity ?? p.stock ?? 0),
+    unit: (p.unit as string) ?? 'kg',
+    images: p.imageUrl ? [p.imageUrl as string] : (p.images as string[]) ?? [],
+    organic: Boolean(p.organic),
+    status: (p.status as string) ?? 'ACTIVE',
+    createdAt: (p.createdAt as string) ?? '',
+    updatedAt: (p.updatedAt as string) ?? '',
+  };
+}
+
+// ────────────────────────────────────────────
+// Async thunks — NOW connected to real API
+// ────────────────────────────────────────────
+
 export const fetchFarmerProducts = createAsyncThunk(
   'farmer/fetchProducts',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return mockProducts;
+      const response = await productService.getMyProducts(1, 100);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return response.data.map((p: any) => toFarmerProduct(p));
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -111,7 +91,8 @@ export const fetchFarmerStats = createAsyncThunk(
   'farmer/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // TODO: Replace with real stats API when available
+      await new Promise((resolve) => setTimeout(resolve, 300));
       return { stats: mockStats, revenueData: mockRevenueData };
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -123,15 +104,21 @@ export const addProduct = createAsyncThunk(
   'farmer/addProduct',
   async (productData: ProductFormData, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const newProduct: FarmerProduct = {
-        id: Date.now().toString(),
-        ...productData,
-        images: productData.imagePreview ? [productData.imagePreview] : [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const createData: CreateProductData = {
+        name: productData.name,
+        description: productData.description,
+        category: productData.category,
+        retailPrice: productData.retailPrice,
+        wholesalePrice: productData.wholesalePrice,
+        quantity: productData.quantity,
+        unit: productData.unit,
+        organic: productData.organic,
+        imageUrl: productData.imageUrl,
+        imageFile: productData.imageFile,
       };
-      return newProduct;
+
+      const product = await productService.createProduct(createData);
+      return toFarmerProduct(product as unknown as Record<string, unknown>);
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -145,15 +132,20 @@ export const updateProduct = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const updatedProduct: FarmerProduct = {
+      const product = await productService.updateProduct({
         id,
-        ...data,
-        images: data.imagePreview ? [data.imagePreview] : [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return updatedProduct;
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        retailPrice: data.retailPrice,
+        wholesalePrice: data.wholesalePrice,
+        quantity: data.quantity,
+        unit: data.unit,
+        organic: data.organic,
+        imageUrl: data.imageUrl,
+        imageFile: data.imageFile,
+      });
+      return toFarmerProduct(product as unknown as Record<string, unknown>);
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -164,7 +156,7 @@ export const deleteProduct = createAsyncThunk(
   'farmer/deleteProduct',
   async (id: string, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await productService.deleteProduct(id);
       return id;
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -190,6 +182,7 @@ const farmerSlice = createSlice({
       .addCase(fetchFarmerProducts.fulfilled, (state, action: PayloadAction<FarmerProduct[]>) => {
         state.isLoading = false;
         state.products = action.payload;
+        state.stats.totalProducts = action.payload.length;
       })
       .addCase(fetchFarmerProducts.rejected, (state, action) => {
         state.isLoading = false;
@@ -201,7 +194,7 @@ const farmerSlice = createSlice({
       })
       .addCase(fetchFarmerStats.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stats = action.payload.stats;
+        state.stats = { ...action.payload.stats, totalProducts: state.products.length };
         state.revenueData = action.payload.revenueData;
       })
       .addCase(fetchFarmerStats.rejected, (state, action) => {
@@ -215,7 +208,8 @@ const farmerSlice = createSlice({
       })
       .addCase(addProduct.fulfilled, (state, action: PayloadAction<FarmerProduct>) => {
         state.isSubmitting = false;
-        state.products.push(action.payload);
+        state.products.unshift(action.payload);
+        state.stats.totalProducts = state.products.length;
       })
       .addCase(addProduct.rejected, (state, action) => {
         state.isSubmitting = false;
@@ -244,6 +238,7 @@ const farmerSlice = createSlice({
       .addCase(deleteProduct.fulfilled, (state, action: PayloadAction<string>) => {
         state.isLoading = false;
         state.products = state.products.filter((p) => p.id !== action.payload);
+        state.stats.totalProducts = state.products.length;
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.isLoading = false;

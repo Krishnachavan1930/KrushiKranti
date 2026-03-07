@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { removeFromWishlist } from '../wishlistSlice';
-import { addItem } from '../../cart/cartSlice';
+import { addToCart } from '../../cart/cartSlice';
 import toast from 'react-hot-toast';
 import type { Product } from '../../product/types';
 
@@ -27,25 +27,23 @@ export function WishlistPage() {
         )
         : [];
 
-    const handleAddToCart = (product: Product) => {
+    const handleAddToCart = async (product: Product) => {
         const alreadyInCart = cartItems.some((i) => i.productId === product.id);
         if (alreadyInCart) {
             toast.error(`${product.name} is already in your cart`);
             return;
         }
-        dispatch(
-            addItem({
-                productId: product.id,
-                name: product.name,
-                price: product.retailPrice ?? 0,
-                wholesalePrice: product.wholesalePrice ?? 0,
-                quantity: 1,
-                image: product.images?.[0] ?? '',
-                unit: product.unit ?? 'kg',
-                maxStock: product.stock ?? 100,
-            })
-        );
-        toast.success(`${product.name} added to cart`);
+        try {
+            await dispatch(
+                addToCart({
+                    productId: product.id,
+                    quantity: 1,
+                })
+            ).unwrap();
+            toast.success(`${product.name} added to cart`);
+        } catch {
+            toast.error('Please log in to add items to your cart');
+        }
     };
 
     const handleRemove = (id: string, name: string) => {

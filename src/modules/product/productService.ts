@@ -7,6 +7,36 @@ const getErrorMessage = (error: unknown, defaultMsg: string): string => {
   return err.response?.data?.message || err.message || defaultMsg;
 };
 
+/**
+ * Transform a raw backend ProductResponse into the frontend Product shape.
+ * The backend returns flat fields; the frontend expects some computed fields.
+ */
+function transformProduct(raw: Record<string, unknown>): Product {
+  return {
+    id: String(raw.id ?? ''),
+    name: (raw.name as string) ?? '',
+    description: (raw.description as string) ?? '',
+    category: (raw.category as ProductCategory) ?? 'other',
+    retailPrice: Number(raw.retailPrice ?? 0),
+    wholesalePrice: Number(raw.wholesalePrice ?? 0),
+    unit: (raw.unit as string) ?? 'kg',
+    quantity: Number(raw.quantity ?? 0),
+    imageUrl: (raw.imageUrl as string) ?? '',
+    farmerId: String(raw.farmerId ?? ''),
+    farmerName: (raw.farmerName as string) ?? 'Unknown Farmer',
+    location: (raw.location as string) ?? '',
+    organic: Boolean(raw.organic),
+    status: (raw.status as string) ?? 'ACTIVE',
+    createdAt: (raw.createdAt as string) ?? '',
+    updatedAt: (raw.updatedAt as string) ?? '',
+    // Backward compatible computed fields
+    stock: Number(raw.quantity ?? 0),
+    images: raw.imageUrl ? [raw.imageUrl as string] : [],
+    rating: Number(raw.rating ?? 4.0),
+    reviewCount: Number(raw.reviewCount ?? 0),
+  };
+}
+
 export interface CreateProductData {
   name: string;
   description: string;
@@ -14,9 +44,10 @@ export interface CreateProductData {
   retailPrice: number;
   wholesalePrice: number;
   unit: string;
-  stock: number;
-  images: string[];
-  location: string;
+  quantity: number;
+  imageUrl?: string;
+  imageFile?: File;
+  location?: string;
   organic: boolean;
 }
 
@@ -26,7 +57,7 @@ export interface UpdateProductData extends Partial<CreateProductData> {
 
 export const productService = {
   /**
-   * Get paginated list of products with filters
+   * Get paginated list of products with filters (public)
    */
   async getProducts(
     filters: ProductFilters = {},
@@ -37,16 +68,13 @@ export const productService = {
       const params = new URLSearchParams();
       params.append('page', String(page - 1)); // Spring Boot uses 0-based pagination
       params.append('size', String(limit));
-      
+
       if (filters.category) params.append('category', filters.category);
       if (filters.search) params.append('search', filters.search);
-      if (filters.minPrice !== undefined) params.append('minPrice', String(filters.minPrice));
-      if (filters.maxPrice !== undefined) params.append('maxPrice', String(filters.maxPrice));
-      if (filters.organic !== undefined) params.append('organic', String(filters.organic));
 
       const response = await api.get<{
         data: {
-          content: Product[];
+          content: Record<string, unknown>[];
           totalElements: number;
           totalPages: number;
           number: number;
@@ -56,9 +84,9 @@ export const productService = {
 
       const pageData = response.data.data;
       return {
-        data: pageData.content,
+        data: pageData.content.map(transformProduct),
         total: pageData.totalElements,
-        page: pageData.number + 1, // Convert back to 1-based
+        page: pageData.number + 1,
         limit: pageData.size,
         totalPages: pageData.totalPages,
       };
@@ -68,12 +96,12 @@ export const productService = {
   },
 
   /**
-   * Get a single product by ID
+   * Get a single product by ID (public)
    */
   async getProductById(id: string): Promise<Product | null> {
     try {
-      const response = await api.get<{ data: Product }>(`/v1/products/${id}`);
-      return response.data.data;
+      const response = await api.get<{ data: Record<string, unknown> }>(`/v1/products/${id}`);
+      return transformProduct(response.data.data);
     } catch (error) {
       const err = error as { response?: { status?: number } };
       if (err.response?.status === 404) {
@@ -85,11 +113,27 @@ export const productService = {
 
   /**
    * Create a new product (Farmer only)
+   * Supports both image file upload and image URL
    */
   async createProduct(data: CreateProductData): Promise<Product> {
     try {
-      const response = await api.post<{ data: Product }>('/v1/products', data);
-      return response.data.data;
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('description', data.description || '');
+      formData.append('category', data.category);
+      formData.append('retailPrice', String(data.retailPrice));
+      formData.append('wholesalePrice', String(data.wholesalePrice || 0));
+      formData.append('quantity', String(data.quantity));
+      formData.append('unit', data.unit);
+      formData.append('organic', String(data.organic));
+      if (data.location) formData.append('location', data.location);
+      if (data.imageUrl) formData.append('imageUrl', data.imageUrl);
+      if (data.imageFile) formData.append('imageFile', data.imageFile);
+
+      const response = await api.post<{ data: Record<string, unknown> }>('/v1/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return transformProduct(response.data.data);
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to create product'));
     }
@@ -100,8 +144,23 @@ export const productService = {
    */
   async updateProduct({ id, ...data }: UpdateProductData): Promise<Product> {
     try {
-      const response = await api.put<{ data: Product }>(`/v1/products/${id}`, data);
-      return response.data.data;
+      const formData = new FormData();
+      if (data.name) formData.append('name', data.name);
+      if (data.description !== undefined) formData.append('description', data.description);
+      if (data.category) formData.append('category', data.category);
+      if (data.retailPrice !== undefined) formData.append('retailPrice', String(data.retailPrice));
+      if (data.wholesalePrice !== undefined) formData.append('wholesalePrice', String(data.wholesalePrice));
+      if (data.quantity !== undefined) formData.append('quantity', String(data.quantity));
+      if (data.unit) formData.append('unit', data.unit);
+      if (data.organic !== undefined) formData.append('organic', String(data.organic));
+      if (data.location) formData.append('location', data.location);
+      if (data.imageUrl) formData.append('imageUrl', data.imageUrl);
+      if (data.imageFile) formData.append('imageFile', data.imageFile);
+
+      const response = await api.put<{ data: Record<string, unknown> }>(`/v1/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return transformProduct(response.data.data);
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Failed to update product'));
     }
@@ -119,13 +178,13 @@ export const productService = {
   },
 
   /**
-   * Get products for a specific farmer
+   * Get products for a specific farmer by farmer ID
    */
   async getFarmerProducts(farmerId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> {
     try {
       const response = await api.get<{
         data: {
-          content: Product[];
+          content: Record<string, unknown>[];
           totalElements: number;
           totalPages: number;
           number: number;
@@ -135,7 +194,7 @@ export const productService = {
 
       const pageData = response.data.data;
       return {
-        data: pageData.content,
+        data: pageData.content.map(transformProduct),
         total: pageData.totalElements,
         page: pageData.number + 1,
         limit: pageData.size,
@@ -147,13 +206,13 @@ export const productService = {
   },
 
   /**
-   * Get my products (for logged-in farmer)
+   * Get my products (for logged-in farmer) — uses JWT token automatically
    */
   async getMyProducts(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> {
     try {
       const response = await api.get<{
         data: {
-          content: Product[];
+          content: Record<string, unknown>[];
           totalElements: number;
           totalPages: number;
           number: number;
@@ -163,7 +222,7 @@ export const productService = {
 
       const pageData = response.data.data;
       return {
-        data: pageData.content,
+        data: pageData.content.map(transformProduct),
         total: pageData.totalElements,
         page: pageData.number + 1,
         limit: pageData.size,

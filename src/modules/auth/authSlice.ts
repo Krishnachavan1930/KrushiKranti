@@ -15,6 +15,13 @@ interface AuthState {
   otpVerified: boolean;
   otpError: string | null;
   pendingVerificationEmail: string | null;
+  // Forgot password states
+  resetEmail: string | null;
+  resetToken: string | null;
+  resetOtpVerified: boolean;
+  resetLoading: boolean;
+  resetError: string | null;
+  resetSuccess: boolean;
 }
 
 const isDev = import.meta.env.MODE === 'development';
@@ -46,6 +53,13 @@ const getInitialAuthState = (): AuthState => {
       otpVerified: false,
       otpError: null,
       pendingVerificationEmail: null,
+      // Forgot password states
+      resetEmail: null,
+      resetToken: null,
+      resetOtpVerified: false,
+      resetLoading: false,
+      resetError: null,
+      resetSuccess: false,
     };
   }
 
@@ -62,6 +76,13 @@ const getInitialAuthState = (): AuthState => {
     otpVerified: false,
     otpError: null,
     pendingVerificationEmail: null,
+    // Forgot password states
+    resetEmail: null,
+    resetToken: null,
+    resetOtpVerified: false,
+    resetLoading: false,
+    resetError: null,
+    resetSuccess: false,
   };
 };
 
@@ -129,6 +150,42 @@ export const resendOtp = createAsyncThunk(
   }
 );
 
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await authService.forgotPassword(email);
+      return { ...response, email };
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const verifyResetOtp = createAsyncThunk(
+  'auth/verifyResetOtp',
+  async ({ email, otp }: { email: string; otp: string }, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyResetOtp(email, otp);
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async ({ email, resetToken, newPassword }: { email: string; resetToken: string; newPassword: string }, { rejectWithValue }) => {
+    try {
+      const response = await authService.resetPassword(email, resetToken, newPassword);
+      return response;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   await authService.logout();
 });
@@ -159,6 +216,17 @@ const authSlice = createSlice({
     },
     setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
+    },
+    clearResetError: (state) => {
+      state.resetError = null;
+    },
+    resetPasswordState: (state) => {
+      state.resetEmail = null;
+      state.resetToken = null;
+      state.resetOtpVerified = false;
+      state.resetLoading = false;
+      state.resetError = null;
+      state.resetSuccess = false;
     }
   },
   extraReducers: (builder) => {
@@ -237,9 +305,53 @@ const authSlice = createSlice({
         state.token = null;
         state.role = null;
         state.isAuthenticated = false;
+      })
+      // Forgot Password
+      .addCase(forgotPassword.pending, (state) => {
+        state.resetLoading = true;
+        state.resetError = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+        state.resetLoading = false;
+        state.resetEmail = action.payload.email;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.resetLoading = false;
+        state.resetError = action.payload as string;
+      })
+      // Verify Reset OTP
+      .addCase(verifyResetOtp.pending, (state) => {
+        state.resetLoading = true;
+        state.resetError = null;
+      })
+      .addCase(verifyResetOtp.fulfilled, (state, action) => {
+        state.resetLoading = false;
+        state.resetOtpVerified = true;
+        state.resetToken = action.payload.resetToken || null;
+      })
+      .addCase(verifyResetOtp.rejected, (state, action) => {
+        state.resetLoading = false;
+        state.resetError = action.payload as string;
+      })
+      // Reset Password
+      .addCase(resetPassword.pending, (state) => {
+        state.resetLoading = true;
+        state.resetError = null;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.resetLoading = false;
+        state.resetSuccess = true;
+        // Clear reset state after success
+        state.resetEmail = null;
+        state.resetToken = null;
+        state.resetOtpVerified = false;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.resetLoading = false;
+        state.resetError = action.payload as string;
       });
   },
 });
 
-export const { clearError, clearOtpError, setPendingVerificationEmail, resetOtpState, setUser, setToken } = authSlice.actions;
+export const { clearError, clearOtpError, setPendingVerificationEmail, resetOtpState, setUser, setToken, clearResetError, resetPasswordState } = authSlice.actions;
 export default authSlice.reducer;

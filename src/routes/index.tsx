@@ -66,6 +66,21 @@ const VerifyOtpPage = lazy(() =>
     default: m.VerifyOtpPage,
   })),
 );
+const ForgotPasswordPage = lazy(() =>
+  import("../modules/auth/pages/ForgotPasswordPage").then((m) => ({
+    default: m.ForgotPasswordPage,
+  })),
+);
+const VerifyResetOtpPage = lazy(() =>
+  import("../modules/auth/pages/VerifyResetOtpPage").then((m) => ({
+    default: m.VerifyResetOtpPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("../modules/auth/pages/ResetPasswordPage").then((m) => ({
+    default: m.ResetPasswordPage,
+  })),
+);
 
 const ProductListPage = lazy(() =>
   import("../modules/product/pages/ProductListPage").then((m) => ({
@@ -104,6 +119,11 @@ const DeliveryTrackingPage = lazy(() =>
     default: m.DeliveryTrackingPage,
   }))
 );
+const OrderTrackingPage = lazy(() =>
+  import("../modules/orders/pages/OrderTrackingPage").then((m) => ({
+    default: m.OrderTrackingPage,
+  }))
+);
 
 const FarmerDashboardPage = lazy(() =>
   import("../modules/farmer/pages/FarmerDashboardPage").then((m) => ({
@@ -128,6 +148,11 @@ const EditProductPage = lazy(() =>
 const FarmerEarningsPage = lazy(() =>
   import("../modules/farmer/pages/FarmerEarningsPage").then((m) => ({
     default: m.FarmerEarningsPage,
+  })),
+);
+const FarmerOrdersPage = lazy(() =>
+  import("../modules/farmer/pages/FarmerOrdersPage").then((m) => ({
+    default: m.FarmerOrdersPage,
   })),
 );
 
@@ -341,7 +366,7 @@ const router = createBrowserRouter([
         path: "orders/:id/track",
         element: (
           <SuspenseWrapper>
-            <DeliveryTrackingPage />
+            <OrderTrackingPage />
           </SuspenseWrapper>
         ),
       },
@@ -430,7 +455,7 @@ const router = createBrowserRouter([
         path: "orders",
         element: (
           <SuspenseWrapper>
-            <MyOrdersPage />
+            <FarmerOrdersPage />
           </SuspenseWrapper>
         ),
       },
@@ -620,6 +645,30 @@ const router = createBrowserRouter([
     element: (
       <SuspenseWrapper>
         <VerifyOtpPage />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <SuspenseWrapper>
+        <ForgotPasswordPage />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/verify-reset-otp",
+    element: (
+      <SuspenseWrapper>
+        <VerifyResetOtpPage />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <SuspenseWrapper>
+        <ResetPasswordPage />
       </SuspenseWrapper>
     ),
   },

@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { store } from './app/store';
 import { AppRouter } from './routes';
 import { useAppSelector } from './shared/hooks';
+import { useWebSocket } from './shared/hooks/useWebSocket';
 
 
 function DarkModeInitializer() {
@@ -20,10 +21,17 @@ function DarkModeInitializer() {
   return null;
 }
 
+function WebSocketInitializer() {
+  // Initialize WebSocket connection based on auth state
+  useWebSocket();
+  return null;
+}
+
 function AppContent() {
   return (
     <>
       <DarkModeInitializer />
+      <WebSocketInitializer />
       <AppRouter />
       <Toaster
         position="top-center"

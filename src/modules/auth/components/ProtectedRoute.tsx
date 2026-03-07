@@ -10,15 +10,20 @@ interface ProtectedRouteProps {
 const isDev = import.meta.env.MODE === 'development';
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user, role: stateRole } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, role: stateRole, token } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const currentRole = stateRole || user?.role;
+  
+  // Also check localStorage token for persistence across page reloads
+  const localStorageToken = localStorage.getItem('token');
+  const hasValidToken = Boolean(token || localStorageToken);
 
   // Temporary logging to verify state
   console.log('[ProtectedRoute] Check:', {
     path: location.pathname,
     isAuthenticated,
     role: currentRole,
+    hasValidToken,
     isDev
   });
 
@@ -29,7 +34,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <>{children}</>;
   }
 
-  if (!isAuthenticated) {
+  // Check both isAuthenticated state AND token existence
+  const isUserAuthenticated = isAuthenticated && hasValidToken;
+
+  if (!isUserAuthenticated) {
     // Redirect to login for any protected path
     const privatePrefixes = ['/admin', '/farmer', '/wholesaler'];
     const privateExactPaths = [

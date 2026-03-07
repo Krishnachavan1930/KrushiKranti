@@ -2,10 +2,14 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export type NotificationType =
     | 'order_placed'
+    | 'order_shipped'
+    | 'order_delivered'
+    | 'delivery_update'
     | 'product_approved'
     | 'bulk_request'
     | 'price_negotiation'
-    | 'new_review';
+    | 'new_review'
+    | 'system';
 
 export interface Notification {
     id: string;

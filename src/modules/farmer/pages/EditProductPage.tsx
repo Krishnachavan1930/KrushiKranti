@@ -67,6 +67,7 @@ export function EditProductPage() {
       unit: product.unit,
       organic: product.organic,
       imagePreview: product.images[0],
+      imageUrl: product.images[0],
     }
     : {};
 

@@ -7,6 +7,7 @@ import farmerReducer from '../modules/farmer/farmerSlice';
 import wholesalerReducer from '../modules/wholesaler/wholesalerSlice';
 import adminReducer from '../modules/admin/adminSlice';
 import orderReducer from '../modules/orders/orderSlice';
+import trackingReducer from '../modules/orders/trackingSlice';
 import chatReducer from '../modules/chat/chatSlice';
 import wishlistReducer from '../modules/wishlist/wishlistSlice';
 import notificationReducer from '../modules/notifications/notificationSlice';
@@ -23,6 +24,7 @@ export const store = configureStore({
     wholesaler: wholesalerReducer,
     admin: adminReducer,
     orders: orderReducer,
+    tracking: trackingReducer,
     chat: chatReducer,
     wishlist: wishlistReducer,
     notifications: notificationReducer,

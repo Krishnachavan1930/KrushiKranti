@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, AlertTriangle } from 'lucide-react';
+import {
+  RiAddLine,
+  RiEditLine,
+  RiDeleteBinLine,
+  RiInboxLine,
+  RiAlertLine,
+} from 'react-icons/ri';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
 import { fetchFarmerProducts, deleteProduct } from '../farmerSlice';
@@ -25,10 +31,45 @@ export function FarmerProductsPage() {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+            Active
+          </span>
+        );
+      case 'SOLD_OUT':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+            Sold Out
+          </span>
+        );
+      case 'INACTIVE':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+            Inactive
+          </span>
+        );
+      case 'PENDING_REVIEW':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+            Pending
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+            {status}
+          </span>
+        );
+    }
+  };
+
   if (isLoading && products.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent"></div>
       </div>
     );
   }
@@ -47,14 +88,14 @@ export function FarmerProductsPage() {
               My Products
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage your product listings
+              Manage your product listings ({products.length} total)
             </p>
           </div>
           <Link
             to="/farmer/products/add"
             className="btn-primary inline-flex items-center gap-2"
           >
-            <Plus size={20} />
+            <RiAddLine size={20} />
             Add Product
           </Link>
         </motion.div>
@@ -66,12 +107,12 @@ export function FarmerProductsPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <Package className="mx-auto text-gray-400 mb-4" size={64} />
+            <RiInboxLine className="mx-auto text-gray-400 mb-4" size={64} />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               No products yet
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Start by adding your first product
+              Start by adding your first product to the marketplace
             </p>
             <Link to="/farmer/products/add" className="btn-primary">
               Add Your First Product
@@ -99,6 +140,9 @@ export function FarmerProductsPage() {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
                       Stock
                     </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      Status
+                    </th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-white">
                       Actions
                     </th>
@@ -118,9 +162,9 @@ export function FarmerProductsPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <img
-                              src={product.images[0] || 'https://via.placeholder.com/48'}
+                              src={product.images[0] || 'https://placehold.co/48x48/e2e8f0/94a3b8?text=No+Img'}
                               alt={product.name}
-                              className="w-12 h-12 rounded-lg object-cover"
+                              className="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
                             />
                             <div>
                               <p className="font-medium text-gray-900 dark:text-white">
@@ -128,7 +172,7 @@ export function FarmerProductsPage() {
                               </p>
                               {product.organic && (
                                 <span className="text-xs text-green-600 dark:text-green-400">
-                                  Organic
+                                  🌿 Organic
                                 </span>
                               )}
                             </div>
@@ -139,7 +183,7 @@ export function FarmerProductsPage() {
                             {product.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
                           ₹{product.retailPrice}/{product.unit}
                         </td>
                         <td className="px-6 py-4 text-gray-900 dark:text-white">
@@ -147,28 +191,32 @@ export function FarmerProductsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <span
-                            className={`${
-                              product.quantity < 50
+                            className={`font-medium ${product.quantity < 50
                                 ? 'text-red-600 dark:text-red-400'
                                 : 'text-gray-900 dark:text-white'
-                            }`}
+                              }`}
                           >
                             {product.quantity} {product.unit}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(product.status || 'ACTIVE')}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               to={`/farmer/products/edit/${product.id}`}
                               className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                              title="Edit"
                             >
-                              <Edit2 size={18} />
+                              <RiEditLine size={18} />
                             </Link>
                             <button
                               onClick={() => setDeleteConfirm(product.id)}
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                              title="Delete"
                             >
-                              <Trash2 size={18} />
+                              <RiDeleteBinLine size={18} />
                             </button>
                           </div>
                         </td>
@@ -193,7 +241,7 @@ export function FarmerProductsPage() {
                   >
                     <div className="flex gap-4">
                       <img
-                        src={product.images[0] || 'https://via.placeholder.com/80'}
+                        src={product.images[0] || 'https://placehold.co/80x80/e2e8f0/94a3b8?text=No+Img'}
                         alt={product.name}
                         className="w-20 h-20 rounded-lg object-cover"
                       />
@@ -207,18 +255,21 @@ export function FarmerProductsPage() {
                               {product.category}
                             </p>
                           </div>
-                          {product.organic && (
-                            <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">
-                              Organic
-                            </span>
-                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            {product.organic && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">
+                                Organic
+                              </span>
+                            )}
+                            {getStatusBadge(product.status || 'ACTIVE')}
+                          </div>
                         </div>
                         <div className="mt-2 flex gap-4 text-sm">
                           <span className="text-gray-600 dark:text-gray-400">
-                            Retail: <span className="text-gray-900 dark:text-white">₹{product.retailPrice}</span>
+                            ₹<span className="text-gray-900 dark:text-white font-medium">{product.retailPrice}</span>
                           </span>
                           <span className="text-gray-600 dark:text-gray-400">
-                            Stock: <span className="text-gray-900 dark:text-white">{product.quantity}</span>
+                            Stock: <span className="text-gray-900 dark:text-white font-medium">{product.quantity}</span>
                           </span>
                         </div>
                       </div>
@@ -228,14 +279,14 @@ export function FarmerProductsPage() {
                         to={`/farmer/products/edit/${product.id}`}
                         className="flex-1 btn-outline text-center flex items-center justify-center gap-2 py-2"
                       >
-                        <Edit2 size={16} />
+                        <RiEditLine size={16} />
                         Edit
                       </Link>
                       <button
                         onClick={() => setDeleteConfirm(product.id)}
                         className="flex-1 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
                       >
-                        <Trash2 size={16} />
+                        <RiDeleteBinLine size={16} />
                         Delete
                       </button>
                     </div>
@@ -265,7 +316,7 @@ export function FarmerProductsPage() {
               >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                    <AlertTriangle className="text-red-600 dark:text-red-400" size={24} />
+                    <RiAlertLine className="text-red-600 dark:text-red-400" size={24} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">

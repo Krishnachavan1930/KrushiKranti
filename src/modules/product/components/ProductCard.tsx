@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Check } from 'lucide-react';
 import type { Product } from '../types';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
-import { addItem } from '../../cart/cartSlice';
+import { addToCart } from '../../cart/cartSlice';
 import type { RootState } from '../../../app/store';
 import toast from 'react-hot-toast';
 import { useProductLocale } from '../hooks/useProductLocale';
@@ -44,21 +44,19 @@ export function ProductCard({ product }: ProductCardProps) {
   const displayName = localise(product.id, 'name', product.name);
   const displayDesc = localise(product.id, 'description', product.description);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isInCart) { toast.error(`${product.name} is already in your cart`); return; }
-    dispatch(addItem({
-      productId: product.id,
-      name: product.name,
-      image: product.images[0],
-      price: product.retailPrice,
-      wholesalePrice: product.wholesalePrice,
-      quantity: 1,
-      unit: product.unit,
-      maxStock: product.stock,
-    }));
-    toast.success(`${product.name} added to cart!`);
+    try {
+      await dispatch(addToCart({
+        productId: product.id,
+        quantity: 1,
+      })).unwrap();
+      toast.success(`${product.name} added to cart`);
+    } catch {
+      toast.error('Please log in to add items to your cart');
+    }
   };
 
   return (

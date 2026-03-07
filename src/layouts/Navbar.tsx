@@ -15,10 +15,11 @@ import {
   RiUserLine,
 } from "react-icons/ri";
 import { FiPhone, FiMail, FiMapPin } from "react-icons/fi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../shared/hooks";
 import { toggleDarkMode } from "../app/uiSlice";
+import { fetchCartItemCount } from "../modules/cart/cartSlice";
 import { LanguageSwitcher } from "../shared/components/LanguageSwitcher";
 import { UserMenu } from "./components/UserMenu";
 import { NotificationDropdown } from "./components/NotificationDropdown";
@@ -34,6 +35,12 @@ export function Navbar() {
   const { itemCount } = useAppSelector((state) => state.cart);
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
   const wishlistCount = wishlistItems.length;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCartItemCount());
+    }
+  }, [isAuthenticated, dispatch]);
 
   const contactItems = [
     {

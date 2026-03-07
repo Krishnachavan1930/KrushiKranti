@@ -14,6 +14,7 @@ import {
   RiInformationLine,
   RiLeafLine,
   RiCheckboxCircleLine,
+  RiLinkM,
 } from 'react-icons/ri';
 import type { ProductFormData } from '../types';
 import type { ProductCategory } from '../../product/types';
@@ -27,6 +28,7 @@ const productSchema = z.object({
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unit: z.string().min(1, 'Unit is required'),
   organic: z.boolean(),
+  imageUrl: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -123,10 +125,12 @@ export function ProductForm({
   submitLabel,
   cancelTo = '/farmer/products',
 }: ProductFormProps) {
-  /* ── Image state (multiple) ── */
+  /* ── Image state ── */
   const [imagePreviews, setImagePreviews] = useState<string[]>(
     initialData?.imagePreview ? [initialData.imagePreview] : []
   );
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState(initialData?.imageUrl || '');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,6 +151,7 @@ export function ProductForm({
       quantity: initialData?.quantity || 0,
       unit: initialData?.unit || 'kg',
       organic: initialData?.organic || false,
+      imageUrl: initialData?.imageUrl || '',
     },
   });
 
@@ -161,8 +166,10 @@ export function ProductForm({
         quantity: initialData.quantity || 0,
         unit: initialData.unit || 'kg',
         organic: initialData.organic || false,
+        imageUrl: initialData.imageUrl || '',
       });
       setImagePreviews(initialData.imagePreview ? [initialData.imagePreview] : []);
+      setImageUrlInput(initialData.imageUrl || '');
     }
   }, [initialData, reset]);
 
@@ -170,6 +177,7 @@ export function ProductForm({
   const addFiles = (files: FileList | null) => {
     if (!files) return;
     Array.from(files).forEach((file) => {
+      setImageFiles((prev) => [...prev, file]);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews((prev) => [...prev, reader.result as string]);
@@ -178,8 +186,10 @@ export function ProductForm({
     });
   };
 
-  const removeImage = (idx: number) =>
+  const removeImage = (idx: number) => {
     setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setImageFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   /* Drag-and-drop */
   const handleDragOver = (e: React.DragEvent) => {
@@ -195,7 +205,21 @@ export function ProductForm({
 
   /* ── Submit ── */
   const onFormSubmit = async (data: ProductFormValues) => {
-    await onSubmit({ ...data, imagePreview: imagePreviews[0] });
+    // Validate: at least one image source needed
+    const hasUploadedFile = imageFiles.length > 0;
+    const hasUrlPasted = !!imageUrlInput.trim();
+    const hasExistingPreview = imagePreviews.length > 0 && imageFiles.length === 0;
+
+    if (!hasUploadedFile && !hasUrlPasted && !hasExistingPreview) {
+      // No image at all — allow it, but show a warning could be added
+    }
+
+    await onSubmit({
+      ...data,
+      imagePreview: imagePreviews[0],
+      imageUrl: hasUploadedFile ? undefined : (imageUrlInput.trim() || undefined),
+      imageFile: imageFiles[0] || undefined,
+    });
   };
 
   return (
@@ -330,7 +354,10 @@ export function ProductForm({
 
       {/* ───────────── 3. Images Card ─────────────────────────────── */}
       <SectionCard icon={<RiImageAddLine size={18} />} title="Product Images">
-        {/* Drag-and-drop zone */}
+        {/* Option 1: Upload from device */}
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          Option 1 — Upload from device
+        </p>
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -358,7 +385,7 @@ export function ProductForm({
               <span className="text-green-600 dark:text-green-400 font-semibold underline underline-offset-2">
                 browse files
               </span>{' '}
-              · PNG, JPG, WEBP up to 5 MB each
+              · PNG, JPG, WEBP up to 10 MB each
             </p>
           </div>
           <input
@@ -414,6 +441,50 @@ export function ProductForm({
             </button>
           </div>
         )}
+
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
+          <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">OR</span>
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
+        </div>
+
+        {/* Option 2: Paste URL */}
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          Option 2 — Paste image URL from internet
+        </p>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <RiLinkM size={18} />
+          </span>
+          <input
+            type="url"
+            value={imageUrlInput}
+            onChange={(e) => setImageUrlInput(e.target.value)}
+            className={`${inputCls} pl-10`}
+            placeholder="https://example.com/product-image.jpg"
+          />
+        </div>
+        {imageUrlInput.trim() && (
+          <div className="mt-3 flex items-center gap-3">
+            <img
+              src={imageUrlInput}
+              alt="URL Preview"
+              className="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Preview of pasted URL. Uploaded image takes priority if both are provided.
+            </p>
+          </div>
+        )}
+
+        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+          <RiInformationLine size={14} className="shrink-0" />
+          Uploaded image takes priority over pasted URL. At least one image source is recommended.
+        </p>
       </SectionCard>
 
       {/* ───────────── Action Buttons ─────────────────────────────── */}

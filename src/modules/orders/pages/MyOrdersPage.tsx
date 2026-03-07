@@ -55,8 +55,11 @@ const getStatusMeta = (t: any) => ({
     },
 });
 
-const TIMELINE_STEPS: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered'];
-const STEP_ORDER: Record<OrderStatus, number> = {
+// Status keys used in this page (lowercase only for display)
+type DisplayStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+const TIMELINE_STEPS: DisplayStatus[] = ['pending', 'processing', 'shipped', 'delivered'];
+const STEP_ORDER: Record<DisplayStatus, number> = {
     pending: 0,
     processing: 1,
     shipped: 2,
@@ -64,10 +67,22 @@ const STEP_ORDER: Record<OrderStatus, number> = {
     cancelled: -1,
 };
 
+// Normalize any status to lowercase display version
+const normalizeStatus = (status: OrderStatus): DisplayStatus => {
+    const s = status.toLowerCase() as DisplayStatus;
+    // Map uppercase statuses to display equivalents
+    if (s === 'placed' as unknown as DisplayStatus) return 'pending';
+    if (s === 'confirmed' as unknown as DisplayStatus) return 'processing';
+    if (s === 'paid' as unknown as DisplayStatus) return 'processing';
+    if (s === 'out_for_delivery' as unknown as DisplayStatus) return 'shipped';
+    return s;
+};
+
 function OrderTimeline({ status, t }: { status: OrderStatus; t: any }) {
     const statusMeta = getStatusMeta(t);
-    const currentStep = STEP_ORDER[status];
-    if (status === 'cancelled') {
+    const normalizedStatus = normalizeStatus(status);
+    const currentStep = STEP_ORDER[normalizedStatus];
+    if (normalizedStatus === 'cancelled') {
         return (
             <div className="flex items-center gap-2 text-red-500 dark:text-red-400 text-xs font-semibold">
                 <RiCloseCircleLine size={15} />
@@ -250,7 +265,7 @@ export function MyOrdersPage() {
                         <p className="text-sm text-slate-400 dark:text-slate-500">
                             {filters.status === 'all'
                                 ? t('orders.no_orders_placed')
-                                : t('orders.no_orders_status', { status: statusMeta[filters.status as OrderStatus]?.label || filters.status })}
+                                : t('orders.no_orders_status', { status: statusMeta[filters.status as DisplayStatus]?.label || filters.status })}
                         </p>
                     </div>
                 )}
@@ -258,7 +273,8 @@ export function MyOrdersPage() {
                 {/* Order cards */}
                 <div className="space-y-4">
                     {orders.map((order) => {
-                        const meta = statusMeta[order.status];
+                        const normalizedStatus = normalizeStatus(order.status);
+                        const meta = statusMeta[normalizedStatus];
                         const StatusIcon = meta.icon;
                         const isExpanded = expandedId === order.id;
 

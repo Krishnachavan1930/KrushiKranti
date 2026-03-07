@@ -6,15 +6,20 @@ export interface Product {
   retailPrice: number;
   wholesalePrice: number;
   unit: string;
-  stock: number;
-  images: string[];
+  quantity: number;
+  imageUrl: string;
   farmerId: string;
   farmerName: string;
   location: string;
   organic: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  // Computed/display fields for backward compat
+  stock: number;
+  images: string[];
   rating: number;
   reviewCount: number;
-  createdAt: string;
   reviews?: Review[];
 }
 

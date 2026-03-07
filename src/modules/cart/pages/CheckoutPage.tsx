@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,7 @@ import { clearCart } from '../cartSlice';
 import toast from 'react-hot-toast';
 import { initializeRazorpayPayment } from '../../../services/PaymentService';
 import { createPaymentOrder, verifyPayment, resetPaymentState } from '../../payment/paymentSlice';
+import { createOrder } from '../../orders/orderSlice';
 
 const checkoutSchema = z.object({
     fullName: z.string().min(3, 'Full name is required'),
@@ -29,6 +30,20 @@ export function CheckoutPage() {
     const { user } = useAppSelector((state) => state.auth);
     const { paymentStatus, paymentLoading, orderId } = useAppSelector((state) => state.payment);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [shouldRedirectToCart, setShouldRedirectToCart] = useState(false);
+
+    // Handle redirect to cart if no items (using useEffect to avoid render-time navigation)
+    useEffect(() => {
+        if (items.length === 0 && !isSuccess) {
+            setShouldRedirectToCart(true);
+        }
+    }, [items.length, isSuccess]);
+
+    useEffect(() => {
+        if (shouldRedirectToCart) {
+            navigate('/cart');
+        }
+    }, [shouldRedirectToCart, navigate]);
 
     const {
         register,
@@ -44,25 +59,44 @@ export function CheckoutPage() {
     });
 
     const onSubmit = async (data: CheckoutFormData) => {
-        if (data.paymentMethod === 'cod') {
-            setIsSuccess(true);
-            dispatch(clearCart());
-            toast.success('Order placed successfully!');
-            return;
-        }
+        // Build shipping address string
+        const shippingAddress = `${data.address}, ${data.city}, ${data.zipCode}`;
+        
+        // Prepare order data from cart items
+        // Note: item.productId is the actual product ID, item.id is the cart item ID
+        const orderData = {
+            items: items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+            })),
+            shippingAddress,
+            paymentMethod: data.paymentMethod,
+        };
 
-        // Handle Razorpay Payment
         try {
-            const orderResult = await dispatch(createPaymentOrder(subtotal)).unwrap();
-            const rzpKey = import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_your_key';
+            // Step 1: Create internal order first
+            const orderResponse = await dispatch(createOrder(orderData)).unwrap();
+            const internalOrderId = Number(orderResponse.id);
 
+            if (data.paymentMethod === 'cod') {
+                setIsSuccess(true);
+                dispatch(clearCart());
+                toast.success('Order placed successfully!');
+                return;
+            }
+
+            // Step 2: Create Razorpay payment order using internal order ID
+            const paymentOrderResult = await dispatch(createPaymentOrder(internalOrderId)).unwrap();
+            const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SOIVBnOF5D2L0j';
+
+            // Step 3: Open Razorpay checkout
             await initializeRazorpayPayment({
                 key: rzpKey,
                 amount: subtotal * 100,
                 currency: 'INR',
                 name: 'KrushiKranti',
                 description: 'Order Payment',
-                order_id: orderResult.orderId,
+                order_id: paymentOrderResult.orderId,
                 prefill: {
                     name: data.fullName,
                     email: data.email,
@@ -72,11 +106,11 @@ export function CheckoutPage() {
                     color: '#16a34a',
                 },
                 handler: async (response: any) => {
+                    // Step 4: Verify payment signature
                     const verificationResult = await dispatch(verifyPayment(response)).unwrap();
                     if (verificationResult.success) {
                         setIsSuccess(true);
                         dispatch(clearCart());
-                        // We keep the orderId in state for the success screen
                         toast.success('Payment successful and order placed!');
                     }
                 },
@@ -88,14 +122,19 @@ export function CheckoutPage() {
                 }
             });
         } catch (error: any) {
-            toast.error(error || 'Payment initialization failed');
+            const errorMessage = typeof error === 'string' ? error : error?.message || 'Order/Payment failed';
+            toast.error(errorMessage);
             dispatch(resetPaymentState());
         }
     };
 
-    if (items.length === 0 && !isSuccess) {
-        navigate('/cart');
-        return null;
+    // Show loading state while redirecting
+    if (shouldRedirectToCart) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-soft-bg dark:bg-gray-900">
+                <Loader2 className="animate-spin text-primary-600" size={32} />
+            </div>
+        );
     }
 
     if (isSuccess) {

@@ -11,6 +11,7 @@ export interface FarmerProduct {
   unit: string;
   images: string[];
   organic: boolean;
+  status: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,4 +38,6 @@ export interface ProductFormData {
   unit: string;
   organic: boolean;
   imagePreview?: string;
+  imageUrl?: string;
+  imageFile?: File;
 }

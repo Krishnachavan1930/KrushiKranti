@@ -2,6 +2,7 @@ import SockJS from 'sockjs-client/dist/sockjs';
 import { Client, type IMessage } from '@stomp/stompjs';
 import { store } from '../app/store';
 import { addRealtimeMessage } from '../modules/bulk/negotiationSlice';
+import { addNotification } from '../modules/notifications/notificationSlice';
 import type { NegotiationMessage } from '../modules/bulk/types';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8080';
@@ -102,6 +103,74 @@ class StompService {
             this.client.deactivate();
             this.client = null;
         }
+    }
+
+    // ── Notification subscription ──────────────────────────────────────────────
+
+    subscribeToNotifications(userId: number): void {
+        const destination = `/user/${userId}/queue/notifications`;
+        if (this.subscriptions.has(destination)) return;
+        if (!this.client?.connected) {
+            console.warn('[STOMP] Not connected, cannot subscribe to notifications');
+            return;
+        }
+
+        const subscription = this.client.subscribe(destination, (message: IMessage) => {
+            try {
+                const notification = JSON.parse(message.body);
+                store.dispatch(addNotification(notification));
+            } catch (e) {
+                console.error('[STOMP] Failed to parse notification:', e);
+            }
+        });
+
+        this.subscriptions.set(destination, subscription);
+        console.log('[STOMP] Subscribed to notifications for user:', userId);
+    }
+
+    unsubscribeFromNotifications(userId: number): void {
+        const destination = `/user/${userId}/queue/notifications`;
+        const sub = this.subscriptions.get(destination);
+        if (sub) {
+            sub.unsubscribe();
+            this.subscriptions.delete(destination);
+        }
+    }
+
+    // ── Typing indicator ──────────────────────────────────────────────────────
+
+    subscribeToTyping(conversationId: number, onTyping: (senderId: number, isTyping: boolean) => void): void {
+        const destination = `/topic/typing/${conversationId}`;
+        if (this.subscriptions.has(destination)) return;
+        if (!this.client?.connected) return;
+
+        const subscription = this.client.subscribe(destination, (message: IMessage) => {
+            try {
+                const event: { senderId: number; isTyping: boolean } = JSON.parse(message.body);
+                onTyping(event.senderId, event.isTyping);
+            } catch (e) {
+                console.error('[STOMP] Failed to parse typing event:', e);
+            }
+        });
+
+        this.subscriptions.set(destination, subscription);
+    }
+
+    unsubscribeFromTyping(conversationId: number): void {
+        const destination = `/topic/typing/${conversationId}`;
+        const sub = this.subscriptions.get(destination);
+        if (sub) {
+            sub.unsubscribe();
+            this.subscriptions.delete(destination);
+        }
+    }
+
+    sendTypingIndicator(conversationId: number, senderId: number, isTyping: boolean): void {
+        if (!this.client?.connected) return;
+        this.client.publish({
+            destination: '/app/negotiation.typing',
+            body: JSON.stringify({ conversationId, senderId, isTyping }),
+        });
     }
 
     get isConnected(): boolean {

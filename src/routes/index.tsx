@@ -242,9 +242,14 @@ const ReadOnlyNegotiationChatPage = lazy(() =>
     default: () => <m.NegotiationChatPage readOnly={true} />,
   })),
 );
-const NegotiationsListPage = lazy(() =>
-  import("../modules/bulk/pages/NegotiationsListPage").then((m) => ({
-    default: m.NegotiationsListPage,
+const PaymentAddressPage = lazy(() =>
+  import("../modules/bulk/pages/PaymentAddressPage").then((m) => ({
+    default: m.PaymentAddressPage,
+  })),
+);
+const BulkOrderTrackingPage = lazy(() =>
+  import("../modules/bulk/pages/BulkOrderTrackingPage").then((m) => ({
+    default: m.BulkOrderTrackingPage,
   })),
 );
 
@@ -539,7 +544,7 @@ const router = createBrowserRouter([
         path: "negotiations",
         element: (
           <SuspenseWrapper>
-            <NegotiationsListPage chatBasePath="/farmer/chat" title="Farmer Negotiations" />
+            <NegotiationChatPage />
           </SuspenseWrapper>
         ),
       },
@@ -548,6 +553,14 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <NegotiationChatPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "orders/track/:orderId",
+        element: (
+          <SuspenseWrapper>
+            <BulkOrderTrackingPage />
           </SuspenseWrapper>
         ),
       },
@@ -612,7 +625,7 @@ const router = createBrowserRouter([
         path: "negotiations",
         element: (
           <SuspenseWrapper>
-            <NegotiationsListPage chatBasePath="/wholesaler/chat" title="Wholesaler Negotiations" />
+            <NegotiationChatPage />
           </SuspenseWrapper>
         ),
       },
@@ -621,6 +634,22 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <NegotiationChatPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "payment-address/:dealId",
+        element: (
+          <SuspenseWrapper>
+            <PaymentAddressPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "orders/track/:orderId",
+        element: (
+          <SuspenseWrapper>
+            <BulkOrderTrackingPage />
           </SuspenseWrapper>
         ),
       },
@@ -717,7 +746,7 @@ const router = createBrowserRouter([
         path: "negotiations",
         element: (
           <SuspenseWrapper>
-            <NegotiationsListPage chatBasePath="/admin/chat" title="All Negotiations (Admin)" />
+            <NegotiationChatPage />
           </SuspenseWrapper>
         ),
       },

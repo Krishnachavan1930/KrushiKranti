@@ -10,11 +10,13 @@ import {
   RiTruckLine,
   RiMapPinLine,
   RiSettings3Line,
+  RiLoader4Line,
 } from "react-icons/ri";
 import { useAppDispatch, useAppSelector } from "../../shared/hooks";
 import {
-  markAsRead,
-  markAllAsRead,
+  markNotificationReadThunk,
+  markAllNotificationsReadThunk,
+  fetchNotifications,
   type NotificationType,
 } from "../../modules/notifications/notificationSlice";
 
@@ -55,10 +57,11 @@ export function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const notifications = useAppSelector(
-    (state) => state.notifications.notifications,
+  const { notifications, unreadCount, isLoading } = useAppSelector(
+    (state) => state.notifications,
   );
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const { role, user } = useAppSelector((state) => state.auth);
+  const currentRole = role ?? user?.role ?? null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -73,10 +76,24 @@ export function NotificationDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (id: string, link?: string) => {
-    dispatch(markAsRead(id));
+  // Load notifications when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      dispatch(fetchNotifications());
+    }
+  }, [isOpen, dispatch]);
+
+  const handleNotificationClick = (id: string, link?: string, referenceType?: string, referenceId?: number) => {
+    dispatch(markNotificationReadThunk(id));
     setIsOpen(false);
-    if (link) navigate(link);
+    if (!link) return;
+    // Resolve role-specific bulk order tracking links
+    if (referenceType === 'BULK_ORDER' && referenceId !== undefined) {
+      const prefix = currentRole === 'farmer' ? '/farmer' : '/wholesaler';
+      navigate(`${prefix}/orders/track/${referenceId}`);
+    } else {
+      navigate(link);
+    }
   };
 
   return (
@@ -110,7 +127,7 @@ export function NotificationDropdown() {
             </div>
             {unreadCount > 0 && (
               <button
-                onClick={() => dispatch(markAllAsRead())}
+                onClick={() => dispatch(markAllNotificationsReadThunk())}
                 className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest"
               >
                 Mark all read
@@ -120,7 +137,12 @@ export function NotificationDropdown() {
 
           {/* List */}
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
-            {notifications.length === 0 ? (
+            {isLoading ? (
+              <div className="py-10 text-center">
+                <RiLoader4Line size={24} className="mx-auto text-green-500 animate-spin mb-2" />
+                <p className="text-xs text-slate-400">Loading...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <RiNotification3Line
                   size={28}
@@ -136,7 +158,7 @@ export function NotificationDropdown() {
                   <button
                     key={notif.id}
                     onClick={() =>
-                      handleNotificationClick(notif.id, notif.link)
+                      handleNotificationClick(notif.id, notif.link, notif.referenceType, notif.referenceId)
                     }
                     className={`w-full text-left p-3 flex gap-3 transition-colors ${
                       notif.isRead

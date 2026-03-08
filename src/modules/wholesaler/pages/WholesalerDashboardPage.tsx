@@ -1,3 +1,4 @@
+import { useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   RiArrowRightSLine,
@@ -13,24 +14,9 @@ import {
   RiUserLine,
 } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
-import { useAppSelector } from '../../../shared/hooks';
+import { useAppSelector, useAppDispatch } from '../../../shared/hooks';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const purchaseData = [
-  { month: 'Oct', amount: 45000 },
-  { month: 'Nov', amount: 62000 },
-  { month: 'Dec', amount: 51000 },
-  { month: 'Jan', amount: 78000 },
-  { month: 'Feb', amount: 95000 },
-  { month: 'Mar', amount: 82000 },
-];
-
-const bulkRequests = [
-  { id: 'BR-001', farmer: 'Rajiv Patel', product: 'Organic Tomatoes', qty: '500 kg', offeredPrice: '₹28/kg', status: 'negotiating' },
-  { id: 'BR-002', farmer: 'Anita Sharma', product: 'Basmati Rice', qty: '1000 kg', offeredPrice: '₹48/kg', status: 'approved' },
-  { id: 'BR-003', farmer: 'Suresh Kumar', product: 'Green Chillies', qty: '200 kg', offeredPrice: '₹22/kg', status: 'pending' },
-  { id: 'BR-004', farmer: 'Lata Devi', product: 'Toor Dal', qty: '300 kg', offeredPrice: '₹85/kg', status: 'rejected' },
-];
+import { fetchWholesalerStats, fetchRequests } from '../wholesalerSlice';
 
 const supplierRatings = [
   { farmer: 'Rajiv Patel', product: 'Tomatoes', rating: 4.8, orders: 12 },
@@ -55,7 +41,28 @@ function StarBar({ rating }: { rating: number }) {
 
 export function WholesalerDashboardPage() {
   const { t } = useTranslation();
-  const { stats } = useAppSelector((state) => state.wholesaler);
+  const dispatch = useAppDispatch();
+  const { stats, requests } = useAppSelector((state) => state.wholesaler);
+
+  useEffect(() => {
+    dispatch(fetchWholesalerStats());
+    dispatch(fetchRequests());
+  }, [dispatch]);
+
+  // Derive monthly purchase chart data from real orders
+  const purchaseData = useMemo(() => {
+    const monthMap: Record<string, number> = {};
+    requests.forEach((r) => {
+      const d = new Date(r.createdAt);
+      if (isNaN(d.getTime())) return;
+      const key = d.toLocaleString('en-US', { month: 'short' });
+      monthMap[key] = (monthMap[key] ?? 0) + r.totalPrice;
+    });
+    return Object.entries(monthMap).map(([month, amount]) => ({ month, amount }));
+  }, [requests]);
+
+  // Show latest 4 requests in the dashboard table
+  const recentRequests = requests.slice(0, 4);
 
   const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
     pending: { label: t('wholesaler.status_pending'), cls: 'text-yellow-700 bg-yellow-50  border-yellow-200', icon: RiTimeLine },
@@ -147,32 +154,42 @@ export function WholesalerDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                {bulkRequests.map((req) => {
-                  const meta = STATUS_META[req.status];
-                  const Icon = meta.icon;
-                  return (
-                    <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <td className="px-5 py-3 text-xs text-slate-400 font-mono">{req.id}</td>
-                      <td className="px-5 py-3 text-sm font-medium text-slate-900 dark:text-white">{req.farmer}</td>
-                      <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.product}</td>
-                      <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.qty}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">{req.offeredPrice}</td>
-                      <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
-                          <Icon size={10} />
-                          {meta.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        {req.status === 'negotiating' && (
-                          <Link to="/wholesaler/chat" className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                            <RiMessage2Line size={12} /> {t('chat.send')}
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {recentRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={tableHeaders.length} className="px-5 py-6 text-center text-sm text-slate-400">
+                      {t('wholesaler.no_requests')}
+                    </td>
+                  </tr>
+                ) : (
+                  recentRequests.map((req) => {
+                    const meta = STATUS_META[req.status] ?? STATUS_META['pending'];
+                    const Icon = meta.icon;
+                    return (
+                      <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-5 py-3 text-xs text-slate-400 font-mono">#{req.id.substring(0, 6)}</td>
+                        <td className="px-5 py-3 text-sm font-medium text-slate-900 dark:text-white">{req.farmerName}</td>
+                        <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.productName}</td>
+                        <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{req.quantity} {req.unit}</td>
+                        <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">
+                          ₹{req.pricePerUnit}/{req.unit}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
+                            <Icon size={10} />
+                            {meta.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          {req.status === 'pending' && (
+                            <Link to="/wholesaler/chat" className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                              <RiMessage2Line size={12} /> {t('chat.send')}
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

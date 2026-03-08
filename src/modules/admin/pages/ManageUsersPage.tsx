@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Loader2, RefreshCw } from 'lucide-react';
-import { adminService } from '../adminService';
-import type { AdminUser } from '../types';
-import toast from 'react-hot-toast';
+import { useState, useEffect, useCallback } from "react";
+import { Search, Filter, Loader2, RefreshCw } from "lucide-react";
+import { adminService } from "../adminService";
+import type { AdminUser } from "../types";
+import toast from "react-hot-toast";
 
-type Role = 'farmer' | 'wholesaler' | 'user' | 'admin';
-type Status = 'active' | 'banned' | 'pending';
+type Role = "farmer" | "wholesaler" | "user" | "admin";
+type Status = "active" | "banned" | "pending";
 
 export function ManageUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,8 @@ export function ManageUsersPage() {
         total: response.total,
       });
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch users';
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to fetch users";
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -47,56 +48,60 @@ export function ManageUsersPage() {
   const handleToggleBan = async (userId: string, currentStatus: Status) => {
     setIsActing(userId);
     try {
-      if (currentStatus === 'banned') {
+      if (currentStatus === "banned") {
         const updatedUser = await adminService.unbanUser(userId);
-        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
-        toast.success('User unbanned successfully');
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? updatedUser : u)),
+        );
+        toast.success("User unbanned successfully");
       } else {
         const updatedUser = await adminService.banUser(userId);
-        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
-        toast.success('User banned successfully');
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? updatedUser : u)),
+        );
+        toast.success("User banned successfully");
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Action failed';
+      const errorMsg = err instanceof Error ? err.message : "Action failed";
       toast.error(errorMsg);
     } finally {
       setIsActing(null);
     }
   };
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   const getStatusStyle = (status: Status) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-700';
-      case 'banned':
-        return 'bg-red-100 text-red-700';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
+      case "active":
+        return "bg-green-100 text-green-700";
+      case "banned":
+        return "bg-red-100 text-red-700";
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
       default:
-        return 'bg-gray-100 text-gray-700';
+        return "bg-gray-100 text-gray-700";
     }
   };
 
   const getRoleStyle = (role: Role) => {
     switch (role) {
-      case 'admin':
-        return 'bg-green-600 text-white';
-      case 'farmer':
-        return 'bg-green-100 text-green-700';
-      case 'wholesaler':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'user':
-        return 'bg-gray-100 text-gray-700';
+      case "admin":
+        return "bg-green-600 text-white";
+      case "farmer":
+        return "bg-green-100 text-green-700";
+      case "wholesaler":
+        return "bg-yellow-100 text-yellow-700";
+      case "user":
+        return "bg-gray-100 text-gray-700";
       default:
-        return 'bg-gray-100 text-gray-700';
+        return "bg-gray-100 text-gray-700";
     }
   };
 
@@ -128,34 +133,42 @@ export function ManageUsersPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage platform users, roles, and access ({pagination.total} total)</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage platform users, roles, and access ({pagination.total} total)
+          </p>
         </div>
         <button
           onClick={() => fetchUsers(pagination.page)}
           disabled={isLoading}
           className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
         >
-          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+          <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
         </button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white"
           />
         </div>
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Filter
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <select
             value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value as Role | 'all')}
+            onChange={(e) => setRoleFilter(e.target.value as Role | "all")}
             className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white appearance-none"
           >
             <option value="all">All Roles</option>
@@ -172,16 +185,28 @@ export function ManageUsersPage() {
         <table className="w-full">
           <thead className="bg-green-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">User</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Role</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Joined</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Last Login</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Action</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">
+                User
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">
+                Role
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">
+                Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">
+                Joined
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">
+                Last Login
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredUsers.map(user => (
+            {filteredUsers.map((user) => (
               <tr key={user.id}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -189,41 +214,57 @@ export function ManageUsersPage() {
                       {user.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {user.name}
+                      </p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}
+                  >
                     {user.role}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}
+                  >
                     {user.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString()
+                    : "-"}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '-'}
+                  {user.lastLogin
+                    ? new Date(user.lastLogin).toLocaleDateString()
+                    : "-"}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {user.role !== 'admin' && (
+                  {user.role !== "admin" && (
                     <button
-                      onClick={() => handleToggleBan(user.id, user.status as Status)}
+                      onClick={() =>
+                        handleToggleBan(user.id, user.status as Status)
+                      }
                       disabled={isActing === user.id}
                       className={`text-xs px-3 py-1 rounded font-medium disabled:opacity-50 ${
-                        user.status === 'banned'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-red-100 text-red-700'
+                        user.status === "banned"
+                          ? "bg-green-600 text-white"
+                          : "bg-red-100 text-red-700"
                       }`}
                     >
                       {isActing === user.id ? (
                         <Loader2 size={12} className="animate-spin" />
-                      ) : user.status === 'banned' ? 'Unban' : 'Ban'}
+                      ) : user.status === "banned" ? (
+                        "Unban"
+                      ) : (
+                        "Ban"
+                      )}
                     </button>
                   )}
                 </td>
@@ -235,43 +276,59 @@ export function ManageUsersPage() {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {filteredUsers.map(user => (
-          <div key={user.id} className="bg-white rounded-lg border border-gray-200 p-4">
+        {filteredUsers.map((user) => (
+          <div
+            key={user.id}
+            className="bg-white rounded-lg border border-gray-200 p-4"
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold">
                   {user.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {user.name}
+                  </p>
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}>
+              <span
+                className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusStyle(user.status as Status)}`}
+              >
                 {user.status}
               </span>
             </div>
             <div className="flex items-center gap-2 mb-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}>
+              <span
+                className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getRoleStyle(user.role as Role)}`}
+              >
                 {user.role}
               </span>
               <span className="text-xs text-gray-500">
-                Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                Joined{" "}
+                {user.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString()
+                  : "-"}
               </span>
             </div>
-            {user.role !== 'admin' && (
+            {user.role !== "admin" && (
               <button
                 onClick={() => handleToggleBan(user.id, user.status as Status)}
                 disabled={isActing === user.id}
                 className={`w-full text-xs py-2 rounded font-medium disabled:opacity-50 ${
-                  user.status === 'banned'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-red-100 text-red-700'
+                  user.status === "banned"
+                    ? "bg-green-600 text-white"
+                    : "bg-red-100 text-red-700"
                 }`}
               >
                 {isActing === user.id ? (
                   <Loader2 size={12} className="animate-spin inline" />
-                ) : user.status === 'banned' ? 'Unban User' : 'Ban User'}
+                ) : user.status === "banned" ? (
+                  "Unban User"
+                ) : (
+                  "Ban User"
+                )}
               </button>
             )}
           </div>

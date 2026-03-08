@@ -20,6 +20,8 @@ import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../shared/hooks";
 import { toggleDarkMode } from "../app/uiSlice";
 import { fetchCartItemCount } from "../modules/cart/cartSlice";
+import { fetchUnreadCount } from "../modules/notifications/notificationSlice";
+import { stompService } from "../services/stompService";
 import { LanguageSwitcher } from "../shared/components/LanguageSwitcher";
 import { UserMenu } from "./components/UserMenu";
 import { NotificationDropdown } from "./components/NotificationDropdown";
@@ -41,6 +43,24 @@ export function Navbar() {
       dispatch(fetchCartItemCount());
     }
   }, [isAuthenticated, dispatch]);
+
+  // Connect WebSocket and subscribe to notifications when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    const userId = user.id;
+    dispatch(fetchUnreadCount());
+
+    stompService.connect().then(() => {
+      stompService.subscribeToNotifications(userId);
+    }).catch(() => {
+      // Silently ignore WS connect failures
+    });
+
+    return () => {
+      stompService.unsubscribeFromNotifications(userId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.id]);
 
   const contactItems = [
     {

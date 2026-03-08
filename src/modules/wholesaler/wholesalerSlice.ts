@@ -1,6 +1,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { BulkRequest, InventoryItem, WholesalerStats } from './types';
+import api from '../../services/api';
+
+// ── Backend response shape (BulkOrderResponse) ──────────────────────────────
+interface BulkOrderBackend {
+  id: number;
+  productName: string;
+  quantity: number;
+  pricePerUnit: number;
+  totalAmount: number;
+  paymentStatus: string;
+  orderStatus: string;
+  deliveryStatus: string;
+  farmerId: number;
+  farmerName: string;
+  wholesalerId: number;
+  wholesalerName: string;
+  shipmentId?: string;
+  awbCode?: string;
+  courierName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface WholesalerState {
   requests: BulkRequest[];
@@ -11,104 +33,49 @@ interface WholesalerState {
   error: string | null;
 }
 
-// Mock data
-const mockRequests: BulkRequest[] = [
-  {
-    id: '1',
-    productId: 'p1',
-    productName: 'Organic Tomatoes',
-    productImage: 'https://images.unsplash.com/photo-1546470427-227c7a3e9853?w=400',
-    farmerId: 'f1',
-    farmerName: 'Ramesh Kumar',
-    wholesalerId: 'w1',
-    quantity: 500,
-    unit: 'kg',
-    pricePerUnit: 45,
-    totalPrice: 22500,
-    status: 'pending',
-    createdAt: '2024-01-20',
-    updatedAt: '2024-01-20',
-  },
-  {
-    id: '2',
-    productId: 'p2',
-    productName: 'Fresh Spinach',
-    productImage: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400',
-    farmerId: 'f2',
-    farmerName: 'Suresh Patel',
-    wholesalerId: 'w1',
-    quantity: 200,
-    unit: 'kg',
-    pricePerUnit: 30,
-    totalPrice: 6000,
-    status: 'approved',
-    createdAt: '2024-01-18',
-    updatedAt: '2024-01-19',
-  },
-  {
-    id: '3',
-    productId: 'p3',
-    productName: 'Basmati Rice',
-    productImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
-    farmerId: 'f1',
-    farmerName: 'Ramesh Kumar',
-    wholesalerId: 'w1',
-    quantity: 1000,
-    unit: 'kg',
-    pricePerUnit: 95,
-    totalPrice: 95000,
-    status: 'rejected',
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-16',
-  },
-];
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-const mockInventory: InventoryItem[] = [
-  {
-    id: '1',
-    productId: 'p2',
-    productName: 'Fresh Spinach',
-    productImage: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400',
-    farmerName: 'Suresh Patel',
-    quantity: 180,
+function mapOrderToRequest(order: BulkOrderBackend): BulkRequest {
+  let status: 'pending' | 'approved' | 'rejected' = 'pending';
+  if (order.orderStatus === 'CONFIRMED' || order.paymentStatus === 'PAID') status = 'approved';
+  else if (order.orderStatus === 'CANCELLED') status = 'rejected';
+  return {
+    id: String(order.id),
+    productId: String(order.id),
+    productName: order.productName,
+    productImage: '',
+    farmerId: String(order.farmerId),
+    farmerName: order.farmerName,
+    wholesalerId: String(order.wholesalerId),
+    quantity: order.quantity,
     unit: 'kg',
-    purchasePrice: 6000,
-    purchaseDate: '2024-01-19',
-    status: 'in-stock',
-  },
-  {
-    id: '2',
-    productId: 'p4',
-    productName: 'Red Onions',
-    productImage: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400',
-    farmerName: 'Amit Sharma',
-    quantity: 50,
-    unit: 'kg',
-    purchasePrice: 2000,
-    purchaseDate: '2024-01-10',
-    status: 'low-stock',
-  },
-  {
-    id: '3',
-    productId: 'p5',
-    productName: 'Green Peas',
-    productImage: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?w=400',
-    farmerName: 'Vijay Singh',
-    quantity: 0,
-    unit: 'kg',
-    purchasePrice: 4500,
-    purchaseDate: '2024-01-05',
-    status: 'out-of-stock',
-  },
-];
+    pricePerUnit: order.pricePerUnit ?? 0,
+    totalPrice: order.totalAmount,
+    status,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
 
-const mockStats: WholesalerStats = {
-  totalRequests: 45,
-  approvedOrders: 32,
-  pendingRequests: 8,
-  inventoryItems: 15,
-  totalInventoryValue: 185000,
-};
+function mapOrderToInventory(order: BulkOrderBackend): InventoryItem {
+  let stockStatus: 'in-stock' | 'low-stock' | 'out-of-stock' = 'in-stock';
+  if (order.deliveryStatus === 'RETURNED') stockStatus = 'out-of-stock';
+  else if (order.quantity < 50) stockStatus = 'low-stock';
+  return {
+    id: String(order.id),
+    productId: String(order.id),
+    productName: order.productName,
+    productImage: '',
+    farmerName: order.farmerName,
+    quantity: order.quantity,
+    unit: 'kg',
+    purchasePrice: order.totalAmount,
+    purchaseDate: order.createdAt.substring(0, 10),
+    status: stockStatus,
+  };
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
 
 const initialState: WholesalerState = {
   requests: [],
@@ -125,13 +92,28 @@ const initialState: WholesalerState = {
   error: null,
 };
 
-// Async thunks
+// ── Async thunks ──────────────────────────────────────────────────────────────
+
 export const fetchWholesalerStats = createAsyncThunk(
   'wholesaler/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return mockStats;
+      const res = await api.get('/v1/bulk-payments/orders');
+      const orders: BulkOrderBackend[] = res.data?.data ?? res.data ?? [];
+      const stats: WholesalerStats = {
+        totalRequests: orders.length,
+        approvedOrders: orders.filter(
+          (o) => o.orderStatus === 'CONFIRMED' || o.paymentStatus === 'PAID'
+        ).length,
+        pendingRequests: orders.filter((o) => o.orderStatus === 'PENDING').length,
+        inventoryItems: orders.filter(
+          (o) => o.deliveryStatus === 'DELIVERED' || o.deliveryStatus === 'IN_TRANSIT'
+        ).length,
+        totalInventoryValue: orders
+          .filter((o) => o.paymentStatus === 'PAID')
+          .reduce((sum, o) => sum + Number(o.totalAmount), 0),
+      };
+      return stats;
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -142,8 +124,9 @@ export const fetchRequests = createAsyncThunk(
   'wholesaler/fetchRequests',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return mockRequests;
+      const res = await api.get('/v1/bulk-payments/orders');
+      const orders: BulkOrderBackend[] = res.data?.data ?? res.data ?? [];
+      return orders.map(mapOrderToRequest);
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -154,8 +137,11 @@ export const fetchInventory = createAsyncThunk(
   'wholesaler/fetchInventory',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return mockInventory;
+      const res = await api.get('/v1/bulk-payments/orders');
+      const orders: BulkOrderBackend[] = res.data?.data ?? res.data ?? [];
+      return orders
+        .filter((o) => o.deliveryStatus === 'DELIVERED' || o.deliveryStatus === 'IN_TRANSIT')
+        .map(mapOrderToInventory);
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -165,7 +151,7 @@ export const fetchInventory = createAsyncThunk(
 export const sendBulkRequest = createAsyncThunk(
   'wholesaler/sendBulkRequest',
   async (
-    { productId, productName, productImage, farmerName, quantity, unit, pricePerUnit }: {
+    _payload: {
       productId: string;
       productName: string;
       productImage: string;
@@ -176,28 +162,7 @@ export const sendBulkRequest = createAsyncThunk(
     },
     { rejectWithValue }
   ) => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const newRequest: BulkRequest = {
-        id: Date.now().toString(),
-        productId,
-        productName,
-        productImage,
-        farmerId: 'f1',
-        farmerName,
-        wholesalerId: 'w1',
-        quantity,
-        unit,
-        pricePerUnit,
-        totalPrice: quantity * pricePerUnit,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return newRequest;
-    } catch (error) {
-      return rejectWithValue((error as Error).message);
-    }
+    return rejectWithValue('Use the negotiation flow to place bulk orders.');
   }
 );
 
@@ -205,7 +170,7 @@ export const approveRequest = createAsyncThunk(
   'wholesaler/approveRequest',
   async (id: string, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await api.post('/v1/negotiations/deal/respond', { dealOfferId: Number(id), action: 'ACCEPT' });
       return id;
     } catch (error) {
       return rejectWithValue((error as Error).message);
@@ -217,7 +182,7 @@ export const rejectRequest = createAsyncThunk(
   'wholesaler/rejectRequest',
   async (id: string, { rejectWithValue }) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await api.post('/v1/negotiations/deal/respond', { dealOfferId: Number(id), action: 'REJECT' });
       return id;
     } catch (error) {
       return rejectWithValue((error as Error).message);

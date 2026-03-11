@@ -64,7 +64,10 @@ export function NegotiationChatPage({
           setIsOtherTyping(isTyping);
           if (isTyping) {
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-            typingTimerRef.current = setTimeout(() => setIsOtherTyping(false), 3000);
+            typingTimerRef.current = setTimeout(
+              () => setIsOtherTyping(false),
+              3000,
+            );
           }
         });
       } catch (err) {
@@ -202,7 +205,7 @@ export function NegotiationChatPage({
         }, 2000);
       }
     },
-    [convId, user?.id, readOnly]
+    [convId, user?.id, readOnly],
   );
 
   return (
@@ -907,7 +910,14 @@ export function NegotiationChatPage({
               )}
               <div ref={messagesEndRef} />
               {isOtherTyping && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0 8px 4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 0 8px 4px",
+                  }}
+                >
                   <div style={{ display: "flex", gap: 3 }}>
                     {[0, 1, 2].map((i) => (
                       <span
@@ -924,7 +934,9 @@ export function NegotiationChatPage({
                       />
                     ))}
                   </div>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>typing…</span>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>
+                    typing…
+                  </span>
                 </div>
               )}
             </div>

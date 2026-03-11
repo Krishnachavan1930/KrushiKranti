@@ -7,8 +7,6 @@ interface ProtectedRouteProps {
   allowedRoles?: Role[];
 }
 
-const isDev = import.meta.env.MODE === 'development';
-
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, user, role: stateRole, token } = useAppSelector((state) => state.auth);
   const location = useLocation();
@@ -17,23 +15,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   // Also check localStorage token for persistence across page reloads
   const localStorageToken = localStorage.getItem('token');
   const hasValidToken = Boolean(token || localStorageToken);
-
-  // Temporary logging to verify state
-  console.log('[ProtectedRoute] Check:', {
-    path: location.pathname,
-    isAuthenticated,
-    role: currentRole,
-    hasValidToken,
-    isDev
-  });
-
-  // Bypass for DEV mode if requested
-  if (isDev && allowedRoles?.includes('admin')) {
-    console.warn('[ProtectedRoute] DEV MODE BYPASS ACTIVE');
-    // We already have devAdmin in authSlice state, but this catches any edge cases
-    return <>{children}</>;
-  }
-
   // Check both isAuthenticated state AND token existence
   const isUserAuthenticated = isAuthenticated && hasValidToken;
 

@@ -517,6 +517,37 @@
         "wheat": "Farmer of wheat",
         "corn": "Farmer of corn"
       }
+    },
+    "services": {
+      "subtitle": "Our Services",
+      "title": "What We Offer",
+      "agriculture": {
+        "title": "Agriculture Products",
+        "desc": "Fresh farm produce sourced directly from verified farmers across India, quality-assured at every step of the journey."
+      },
+      "organic": {
+        "title": "Organic Products",
+        "desc": "Naturally grown, chemical-free produce cultivated using sustainable farming practices for a healthier tomorrow."
+      },
+      "dairy": {
+        "title": "Dairy Products",
+        "desc": "Pure and fresh dairy products direct from local farms, delivered to your doorstep with full hygiene standards."
+      }
+    },
+    "why_choose": {
+      "subtitle": "Our Farm Benefits",
+      "title": "Why Choose KrushiKranti",
+      "desc": "We directly connect farmers with buyers, ensuring fair prices, fresh produce, and a transparent supply chain that benefits everyone in the agricultural ecosystem.",
+      "benefit1_title": "Quality Organic Food",
+      "benefit1_desc": "Every product on our platform meets the highest organic quality standards before reaching your table.",
+      "benefit2_title": "Professional Farmers",
+      "benefit2_desc": "Our verified network of professional farmers guarantees expertise, care, and dedication to quality.",
+      "benefit3_title": "Quality Products",
+      "benefit3_desc": "From farm to table, every product is quality-tested and certified to ensure your safety and satisfaction.",
+      "cta": "Discover More",
+      "overlay_line1": "Agriculture",
+      "overlay_line2": "Professional",
+      "overlay_line3": "Leader"
     }
   },
   "contact": {

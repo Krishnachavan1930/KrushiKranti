@@ -1,99 +1,135 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as blogService from '../../services/blogService';
+import type { BlogResponse, BlogRequest } from '../../services/blogService';
 
+/** Normalised shape consumed by public BlogPage & BlogDetailPage */
 export interface BlogPost {
     id: string;
     title: string;
+    slug: string;
     excerpt: string;
+    /** HTML content used in detail view */
     content_body?: string;
-    quote?: string;
     image: string;
     date: string;
     author: string;
     comments: number;
+    category?: string;
+    tags?: string;
+    status?: string;
 }
 
 interface BlogState {
     blogs: BlogPost[];
     featuredBlogs: BlogPost[];
     blogDetails: BlogPost | null;
+    adminBlogs: BlogResponse[];
+    adminPagination: {
+        page: number;
+        size: number;
+        totalPages: number;
+        totalElements: number;
+    };
+    stats: {
+        total: number;
+        published: number;
+        draft: number;
+        archived: number;
+    };
     loading: boolean;
+    adminLoading: boolean;
     error: string | null;
+    adminError: string | null;
 }
 
 const initialState: BlogState = {
     blogs: [],
     featuredBlogs: [],
     blogDetails: null,
+    adminBlogs: [],
+    adminPagination: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+    stats: { total: 0, published: 0, draft: 0, archived: 0 },
     loading: false,
+    adminLoading: false,
     error: null,
+    adminError: null,
 };
 
-// Mock data as initial state for now, similar to what was in the components
-const mockBlogs: BlogPost[] = [
-    {
-        id: "1",
-        title: "Bringing Food Production Back to Cities",
-        excerpt: "Agricultural output is influenced by many factors. One of them is soil quality. Healthy soil is the foundation of a productive farming system.",
-        image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
-        date: "05 July 2022",
-        author: "Kevin Martin",
-        comments: 1,
-    },
-    {
-        id: "2",
-        title: "The Future of Farming, Smart Irrigation Solutions",
-        excerpt: "Modern urban farming isn’t just a fad; it’s a necessity. As cities grow, the distance between the farm and the table increases.",
-        image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&q=80",
-        date: "05 July 2022",
-        author: "Kevin Martin",
+function toPost(b: BlogResponse): BlogPost {
+    return {
+        id: String(b.id),
+        title: b.title,
+        slug: b.slug ?? String(b.id),
+        excerpt: b.excerpt ?? '',
+        content_body: b.content,
+        image: b.imageUrl ?? 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
+        date: b.createdAt
+            ? new Date(b.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+            : '',
+        author: b.authorName ?? 'KrushiKranti',
         comments: 0,
-    },
-    {
-        id: "3",
-        title: "Relationship of Chemistry and Other Sciences",
-        excerpt: "Vertical farming allows us to grow more food in less space. By stacking layers of crops, we can increase yield per square foot.",
-        image: "https://images.unsplash.com/photo-1592982537447-6f2a6a0c3023?w=800&q=80",
-        date: "05 July 2022",
-        author: "Kevin Martin",
-        comments: 0,
-    },
-];
+        category: b.category ?? undefined,
+        tags: b.tags ?? undefined,
+        status: b.status,
+    };
+}
 
 export const fetchBlogs = createAsyncThunk('blog/fetchBlogs', async () => {
-    // Simulate API call
-    return new Promise<BlogPost[]>((resolve) => {
-        setTimeout(() => resolve(mockBlogs), 1000);
-    });
+    const page = await blogService.fetchPublishedBlogs({ page: 0, size: 20 });
+    return page.content.map(toPost);
 });
 
 export const fetchBlogById = createAsyncThunk('blog/fetchBlogById', async (id: string) => {
-    // Simulate API call
-    return new Promise<BlogPost>((resolve, reject) => {
-        const post = mockBlogs.find(b => b.id === id);
-        setTimeout(() => {
-            if (post) resolve(post);
-            else reject("Blog not found");
-        }, 500);
-    });
+    const blog = await blogService.fetchBlogBySlug(id);
+    return toPost(blog);
+});
+
+export const fetchAdminBlogs = createAsyncThunk(
+    'blog/fetchAdminBlogs',
+    async (params: { search?: string; page?: number; size?: number } | undefined) => {
+        return blogService.fetchAllBlogsAdmin(params);
+    }
+);
+
+export const fetchBlogStats = createAsyncThunk('blog/fetchBlogStats', async () => {
+    return blogService.fetchBlogStats();
+});
+
+export const createBlog = createAsyncThunk(
+    'blog/createBlog',
+    async (payload: { req: BlogRequest; authorId: number }) => {
+        return blogService.createBlog(payload.req, payload.authorId);
+    }
+);
+
+export const updateBlog = createAsyncThunk(
+    'blog/updateBlog',
+    async (payload: { id: number; req: BlogRequest }) => {
+        return blogService.updateBlog(payload.id, payload.req);
+    }
+);
+
+export const deleteBlog = createAsyncThunk('blog/deleteBlog', async (id: number) => {
+    await blogService.deleteBlogById(id);
+    return id;
+});
+
+export const publishBlog = createAsyncThunk('blog/publishBlog', async (id: number) => {
+    return blogService.publishBlog(id);
+});
+
+export const unpublishBlog = createAsyncThunk('blog/unpublishBlog', async (id: number) => {
+    return blogService.unpublishBlog(id);
+});
+
+export const archiveBlog = createAsyncThunk('blog/archiveBlog', async (id: number) => {
+    return blogService.archiveBlog(id);
 });
 
 const blogSlice = createSlice({
     name: 'blog',
     initialState,
-    reducers: {
-        addBlog: (state, action: PayloadAction<BlogPost>) => {
-            state.blogs.push(action.payload);
-        },
-        deleteBlog: (state, action: PayloadAction<string>) => {
-            state.blogs = state.blogs.filter(b => b.id !== action.payload);
-        },
-        updateBlog: (state, action: PayloadAction<BlogPost>) => {
-            const index = state.blogs.findIndex(b => b.id === action.payload.id);
-            if (index !== -1) {
-                state.blogs[index] = action.payload;
-            }
-        },
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             .addCase(fetchBlogs.pending, (state) => {
@@ -107,7 +143,7 @@ const blogSlice = createSlice({
             })
             .addCase(fetchBlogs.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.error.message || 'Failed to fetch blogs';
+                state.error = action.error.message ?? 'Failed to fetch blogs';
             })
             .addCase(fetchBlogById.pending, (state) => {
                 state.loading = true;
@@ -120,10 +156,57 @@ const blogSlice = createSlice({
             })
             .addCase(fetchBlogById.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.error.message || 'Failed to fetch blog';
+                state.error = action.error.message ?? 'Failed to fetch blog';
+            })
+            .addCase(fetchAdminBlogs.pending, (state) => {
+                state.adminLoading = true;
+                state.adminError = null;
+            })
+            .addCase(fetchAdminBlogs.fulfilled, (state, action) => {
+                state.adminLoading = false;
+                state.adminBlogs = action.payload.content;
+                state.adminPagination = {
+                    page: action.payload.number,
+                    size: action.payload.size,
+                    totalPages: action.payload.totalPages,
+                    totalElements: action.payload.totalElements,
+                };
+            })
+            .addCase(fetchAdminBlogs.rejected, (state, action) => {
+                state.adminLoading = false;
+                state.adminError = action.error.message ?? 'Failed to fetch admin blogs';
+            })
+            .addCase(fetchBlogStats.fulfilled, (state, action) => {
+                state.stats = action.payload;
+            })
+            .addCase(createBlog.fulfilled, (state, action) => {
+                state.adminBlogs = [action.payload, ...state.adminBlogs];
+                state.stats.total += 1;
+                if (action.payload.status === 'PUBLISHED') state.stats.published += 1;
+                if (action.payload.status === 'DRAFT') state.stats.draft += 1;
+            })
+            .addCase(updateBlog.fulfilled, (state, action) => {
+                state.adminBlogs = state.adminBlogs.map((b) => (b.id === action.payload.id ? action.payload : b));
+            })
+            .addCase(deleteBlog.fulfilled, (state, action) => {
+                const removed = state.adminBlogs.find((b) => b.id === action.payload);
+                state.adminBlogs = state.adminBlogs.filter((b) => b.id !== action.payload);
+                if (removed) {
+                    state.stats.total = Math.max(0, state.stats.total - 1);
+                    if (removed.status === 'PUBLISHED') state.stats.published = Math.max(0, state.stats.published - 1);
+                    if (removed.status === 'DRAFT') state.stats.draft = Math.max(0, state.stats.draft - 1);
+                }
+            })
+            .addCase(publishBlog.fulfilled, (state, action) => {
+                state.adminBlogs = state.adminBlogs.map((b) => (b.id === action.payload.id ? action.payload : b));
+            })
+            .addCase(unpublishBlog.fulfilled, (state, action) => {
+                state.adminBlogs = state.adminBlogs.map((b) => (b.id === action.payload.id ? action.payload : b));
+            })
+            .addCase(archiveBlog.fulfilled, (state, action) => {
+                state.adminBlogs = state.adminBlogs.map((b) => (b.id === action.payload.id ? action.payload : b));
             });
     },
 });
 
-export const { addBlog, deleteBlog, updateBlog } = blogSlice.actions;
 export default blogSlice.reducer;

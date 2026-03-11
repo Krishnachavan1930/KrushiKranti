@@ -3,8 +3,15 @@ import { useAppDispatch, useAppSelector } from "../../../shared/hooks";
 import { fetchConversations } from "../../bulk/negotiationSlice";
 import { useNavigate } from "react-router-dom";
 import { RiMessage2Line } from "react-icons/ri";
-import AdminLayout from "../components/AdminLayout";
-import { formatTime } from "../../../utils/formatters";
+
+const formatTime = (ts: string) =>
+  ts ? new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
+const statusStyle: Record<string, string> = {
+  ACTIVE: "bg-blue-100 text-blue-700",
+  AGREED: "bg-green-100 text-green-700",
+  CLOSED: "bg-red-100 text-red-700",
+};
 
 const GlobalChatMonitorPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -18,227 +25,54 @@ const GlobalChatMonitorPage: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <AdminLayout>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#1f2937",
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <RiMessage2Line color="#16a34a" />
-            Global Chat Monitor
-          </h1>
-        </div>
+    <div className="max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <RiMessage2Line className="text-primary-600" />
+          Global Chat Monitor
+        </h1>
+      </div>
 
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-            overflow: "hidden",
-          }}
-        >
-          {isLoading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
-              Loading conversations...
-            </div>
-          ) : conversations.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
-              No active negotiations found across the platform.
-            </div>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead
-                style={{
-                  background: "#f8fafc",
-                  borderBottom: "1px solid #e2e8f0",
-                }}
-              >
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-800">
+        {isLoading ? (
+          <div className="p-10 text-center text-gray-500">Loading conversations...</div>
+        ) : conversations.length === 0 ? (
+          <div className="p-10 text-center text-gray-500">
+            No active negotiations found across the platform.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Product
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Farmer
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Wholesaler
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Status
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Started
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 24px",
-                      textAlign: "right",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Action
-                  </th>
+                  {["Product", "Farmer", "Wholesaler", "Status", "Started", "Action"].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 ${i === 5 ? "text-right" : "text-left"}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {conversations.map((conv) => (
-                  <tr
-                    key={conv.id}
-                    style={{
-                      borderBottom: "1px solid #e2e8f0",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f8fafc")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: "#1e293b",
-                      }}
-                    >
+                  <tr key={conv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
                       {conv.bulkProductName}
                     </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        fontSize: 14,
-                        color: "#64748b",
-                      }}
-                    >
-                      {conv.farmerName}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        fontSize: 14,
-                        color: "#64748b",
-                      }}
-                    >
-                      {conv.wholesalerName}
-                    </td>
-                    <td style={{ padding: "16px 24px" }}>
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 20,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          background:
-                            conv.status === "ACTIVE"
-                              ? "#dbeafe"
-                              : conv.status === "AGREED"
-                                ? "#dcfce7"
-                                : "#fee2e2",
-                          color:
-                            conv.status === "ACTIVE"
-                              ? "#2563eb"
-                              : conv.status === "AGREED"
-                                ? "#16a34a"
-                                : "#dc2626",
-                        }}
-                      >
+                    <td className="px-6 py-4 text-sm text-slate-500">{conv.farmerName}</td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{conv.wholesalerName}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusStyle[conv.status] ?? "bg-gray-100 text-gray-700"}`}>
                         {conv.status}
                       </span>
                     </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        fontSize: 14,
-                        color: "#64748b",
-                      }}
-                    >
-                      {formatTime(conv.createdAt)}
-                    </td>
-                    <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                    <td className="px-6 py-4 text-sm text-slate-500">{formatTime(conv.createdAt)}</td>
+                    <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => navigate(`/admin/chat/${conv.id}`)}
-                        style={{
-                          padding: "6px 14px",
-                          background: "#1e293b",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          transition: "background 0.2s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#0f172a")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "#1e293b")
-                        }
+                        className="px-3.5 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-xs font-semibold rounded-md hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
                       >
                         View Chat
                       </button>
@@ -247,10 +81,10 @@ const GlobalChatMonitorPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </AdminLayout>
+    </div>
   );
 };
 

@@ -1,6 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
+interface CheckoutPaymentPayload {
+    items: {
+        productId: string;
+        quantity: number;
+    }[];
+    shippingAddress: string;
+    shippingCity: string;
+    shippingState: string;
+    shippingPincode: string;
+    customerPhone: string;
+    paymentMethod: string;
+}
+
 interface PaymentState {
     paymentStatus: 'idle' | 'loading' | 'success' | 'failed';
     paymentLoading: boolean;
@@ -20,12 +33,12 @@ const initialState: PaymentState = {
 // Async thunk to create a payment order
 export const createPaymentOrder = createAsyncThunk(
     'payment/createOrder',
-    async (internalOrderId: number, { rejectWithValue }) => {
+    async (payload: CheckoutPaymentPayload, { rejectWithValue }) => {
         try {
-            const response = await api.post('/v1/payment/create-order', { orderId: internalOrderId });
+            const response = await api.post('/v1/payment/create-order', payload);
             const data = response.data.data;
             return { 
-                orderId: data.id, // Razorpay order ID
+                razorpayOrderId: data.id,
                 amount: data.amount,
                 currency: data.currency,
                 status: data.status
@@ -51,7 +64,12 @@ export const verifyPayment = createAsyncThunk(
                 razorpayPaymentId: paymentData.razorpay_payment_id,
                 razorpaySignature: paymentData.razorpay_signature,
             });
-            return { success: response.data.data === true };
+            const data = response.data.data;
+            return {
+                success: data.verified === true,
+                primaryOrderId: data.primaryOrderId ? String(data.primaryOrderId) : null,
+                orderIds: Array.isArray(data.orderIds) ? data.orderIds.map(String) : [],
+            };
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Payment verification failed';
             return rejectWithValue(message);
@@ -81,8 +99,8 @@ const paymentSlice = createSlice({
             .addCase(createPaymentOrder.fulfilled, (state, action) => {
                 state.paymentLoading = false;
                 state.paymentStatus = 'idle';
-                state.orderId = action.payload.orderId;
-                state.razorpayOrderId = action.payload.orderId;
+                state.orderId = null;
+                state.razorpayOrderId = action.payload.razorpayOrderId;
             })
             .addCase(createPaymentOrder.rejected, (state, action) => {
                 state.paymentLoading = false;
@@ -93,9 +111,10 @@ const paymentSlice = createSlice({
                 state.paymentLoading = true;
                 state.paymentStatus = 'loading';
             })
-            .addCase(verifyPayment.fulfilled, (state) => {
+            .addCase(verifyPayment.fulfilled, (state, action) => {
                 state.paymentLoading = false;
                 state.paymentStatus = 'success';
+                state.orderId = action.payload.primaryOrderId;
             })
             .addCase(verifyPayment.rejected, (state, action) => {
                 state.paymentLoading = false;

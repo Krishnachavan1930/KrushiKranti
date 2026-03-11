@@ -51,6 +51,16 @@ const LoginPage = lazy(() =>
     default: m.LoginPage,
   })),
 );
+const AdminLoginPage = lazy(() =>
+  import("../modules/auth/pages/AdminLoginPage").then((m) => ({
+    default: m.AdminLoginPage,
+  })),
+);
+const AdminRegisterPage = lazy(() =>
+  import("../modules/auth/pages/AdminRegisterPage").then((m) => ({
+    default: m.AdminRegisterPage,
+  })),
+);
 const RegisterPage = lazy(() =>
   import("../modules/auth/pages/RegisterPage").then((m) => ({
     default: m.RegisterPage,
@@ -112,18 +122,24 @@ const MyOrdersPage = lazy(() =>
 const WishlistPage = lazy(() =>
   import("../modules/wishlist/pages/WishlistPage").then((m) => ({
     default: m.WishlistPage,
-  }))
+  })),
 );
 const DeliveryTrackingPage = lazy(() =>
   import("../modules/orders/pages/DeliveryTrackingPage").then((m) => ({
     default: m.DeliveryTrackingPage,
-  }))
+  })),
+);
+
+const OrderDetailsPage = lazy(() =>
+  import("../modules/orders/pages/OrderDetailsPage").then((m) => ({
+    default: m.OrderDetailsPage,
+  })),
 );
 
 const DeliveryDashboardPage = lazy(() =>
   import("../modules/orders/pages/DeliveryDashboardPage").then((m) => ({
     default: m.DeliveryDashboardPage,
-  }))
+  })),
 );
 
 const FarmerDashboardPage = lazy(() =>
@@ -220,6 +236,26 @@ const GlobalChatMonitorPage = lazy(() =>
   })),
 );
 
+const AdminBlogsPage = lazy(() =>
+  import("../modules/admin/pages/AdminBlogsPage").then((m) => ({
+    default: m.AdminBlogsPage,
+  })),
+);
+const AdminBlogFormPage = lazy(() =>
+  import("../modules/admin/pages/AdminBlogFormPage").then((m) => ({
+    default: m.AdminBlogFormPage,
+  })),
+);
+const AdminPaymentsPage = lazy(() =>
+  import("../modules/admin/pages/AdminPaymentsPage").then((m) => ({
+    default: m.AdminPaymentsPage,
+  })),
+);
+const AdminShipmentsPage = lazy(() =>
+  import("../modules/admin/pages/AdminShipmentsPage").then((m) => ({
+    default: m.AdminShipmentsPage,
+  })),
+);
 
 // ── Bulk Marketplace pages ──────────────────────────────────────────────────
 const BulkMarketPage = lazy(() =>
@@ -364,6 +400,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "blogs",
+        element: (
+          <SuspenseWrapper>
+            <BlogPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
         path: "bulk-market",
         element: (
           <SuspenseWrapper>
@@ -373,6 +417,14 @@ const router = createBrowserRouter([
       },
       {
         path: "blog/:id",
+        element: (
+          <SuspenseWrapper>
+            <BlogDetailPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blogs/:id",
         element: (
           <SuspenseWrapper>
             <BlogDetailPage />
@@ -408,6 +460,14 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <MyOrdersPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "orders/:id",
+        element: (
+          <SuspenseWrapper>
+            <OrderDetailsPage />
           </SuspenseWrapper>
         ),
       },
@@ -766,6 +826,46 @@ const router = createBrowserRouter([
           </SuspenseWrapper>
         ),
       },
+      {
+        path: "blogs",
+        element: (
+          <SuspenseWrapper>
+            <AdminBlogsPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blogs/create",
+        element: (
+          <SuspenseWrapper>
+            <AdminBlogFormPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blogs/edit/:id",
+        element: (
+          <SuspenseWrapper>
+            <AdminBlogFormPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "payments",
+        element: (
+          <SuspenseWrapper>
+            <AdminPaymentsPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "shipments",
+        element: (
+          <SuspenseWrapper>
+            <AdminShipmentsPage />
+          </SuspenseWrapper>
+        ),
+      },
     ],
   },
   // ── Auth routes ────────────────────────────────────────────────────────────
@@ -814,6 +914,23 @@ const router = createBrowserRouter([
     element: (
       <SuspenseWrapper>
         <ResetPasswordPage />
+      </SuspenseWrapper>
+    ),
+  },
+  // ── Admin auth routes (public) ────────────────────────────────────────────
+  {
+    path: "/admin/login",
+    element: (
+      <SuspenseWrapper>
+        <AdminLoginPage />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/admin/register",
+    element: (
+      <SuspenseWrapper>
+        <AdminRegisterPage />
       </SuspenseWrapper>
     ),
   },

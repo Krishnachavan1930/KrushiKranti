@@ -22,46 +22,14 @@ interface AuthState {
   resetLoading: boolean;
   resetError: string | null;
   resetSuccess: boolean;
+  // Admin creation states
+  adminCreateLoading: boolean;
+  adminCreateError: string | null;
 }
-
-const isDev = import.meta.env.MODE === 'development';
 
 const getInitialAuthState = (): AuthState => {
   const storedUser = authService.getStoredUser();
   const storedToken = authService.getStoredToken();
-
-  // Dev mode bypass
-  if (isDev && !storedUser) {
-    console.log('--- DEV MODE ADMIN BYPASS ACTIVE ---');
-    const devAdmin: User = {
-      id: 'dev-admin',
-      name: 'Dev Admin',
-      email: 'admin@dev.local',
-      role: 'admin',
-      createdAt: new Date().toISOString()
-    };
-    return {
-      user: devAdmin,
-      token: 'dev-token',
-      role: 'admin',
-      isAuthenticated: true,
-      isLoading: false,
-      error: null,
-      // OTP verification states
-      registerLoading: false,
-      otpLoading: false,
-      otpVerified: false,
-      otpError: null,
-      pendingVerificationEmail: null,
-      // Forgot password states
-      resetEmail: null,
-      resetToken: null,
-      resetOtpVerified: false,
-      resetLoading: false,
-      resetError: null,
-      resetSuccess: false,
-    };
-  }
 
   return {
     user: storedUser,
@@ -83,6 +51,9 @@ const getInitialAuthState = (): AuthState => {
     resetLoading: false,
     resetError: null,
     resetSuccess: false,
+    // Admin creation states
+    adminCreateLoading: false,
+    adminCreateError: null,
   };
 };
 
@@ -150,6 +121,17 @@ export const resendOtp = createAsyncThunk(
   }
 );
 
+export const createAdmin = createAsyncThunk(
+  'auth/createAdmin',
+  async (data: { name: string; email: string; password: string }, { rejectWithValue }) => {
+    try {
+      return await authService.createAdmin(data);
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
 export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
   async (email: string, { rejectWithValue }) => {
@@ -196,6 +178,7 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+      state.adminCreateError = null;
     },
     clearOtpError: (state) => {
       state.otpError = null;
@@ -234,6 +217,7 @@ const authSlice = createSlice({
       .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.adminCreateError = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -250,6 +234,7 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => {
         state.registerLoading = true;
         state.error = null;
+        state.adminCreateError = null;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.registerLoading = false;
@@ -349,6 +334,20 @@ const authSlice = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.resetLoading = false;
         state.resetError = action.payload as string;
+      })
+      // Create Admin
+      .addCase(createAdmin.pending, (state) => {
+        state.adminCreateLoading = true;
+        state.error = null;
+        state.adminCreateError = null;
+      })
+      .addCase(createAdmin.fulfilled, (state) => {
+        state.adminCreateLoading = false;
+        state.adminCreateError = null;
+      })
+      .addCase(createAdmin.rejected, (state, action) => {
+        state.adminCreateLoading = false;
+        state.adminCreateError = action.payload as string;
       });
   },
 });

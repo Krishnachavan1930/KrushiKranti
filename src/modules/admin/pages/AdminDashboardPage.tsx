@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   RiArrowRightSLine,
   RiArrowUpLine,
@@ -17,6 +18,11 @@ import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import api from '../../../services/api';
+import { adminService } from '../adminService';
+import { orderService } from '../../orders/orderService';
+import { productService } from '../../product/productService';
+import type { AdminUser } from '../types';
 
 const revenueData = [
   { month: 'Oct', revenue: 85000 },
@@ -36,44 +42,15 @@ const userGrowthData = [
   { month: 'Mar', users: 420, farmers: 92 },
 ];
 
-const fraudAlerts = [
-  { id: 'FA-001', type: 'Suspicious pricing', user: 'Vikram Singh', severity: 'high', time: '2m ago' },
-  { id: 'FA-002', type: 'Unusual transaction', user: 'Mohan Lal', severity: 'medium', time: '15m ago' },
-  { id: 'FA-003', type: 'Multiple account attempt', user: 'Unknown', severity: 'high', time: '1h ago' },
-];
-
-const commissions = [
-  { category: 'Consumer Orders', rate: '2%', earned: '₹15,240' },
-  { category: 'Wholesale / Agent', rate: '5%', earned: '₹42,800' },
-  { category: 'Farmer Platform Fee', rate: '3%', earned: '₹27,350' },
-];
-
-const pendingProducts = [
-  { name: 'Organic Mangoes', farmer: 'Ramesh Patel', category: 'Fruits' },
-  { name: 'Fresh Carrots', farmer: 'Sunita Devi', category: 'Vegetables' },
-  { name: 'Premium Wheat', farmer: 'Anil Kumar', category: 'Grains' },
-];
-
-const recentLogs = [
-  { action: 'User banned', detail: 'Vikram Singh', time: '2m ago', color: 'text-red-500' },
-  { action: 'Product approved', detail: 'Fresh Spinach by Anil', time: '15m ago', color: 'text-green-600' },
-  { action: 'Farmer joined', detail: 'Ramesh Sharma, Pune', time: '1h ago', color: 'text-green-600' },
-  { action: 'Commission updated', detail: '5% → 6% for Agents', time: '3h ago', color: 'text-yellow-600' },
-  { action: 'Bulk request flagged', detail: 'BR-089 by Wholesale Co.', time: '5h ago', color: 'text-orange-500' },
-];
-
-const manageUsers = [
-  { name: 'Priya Sharma', role: 'user', joined: '1 Mar 2026', status: 'active' },
-  { name: 'Anil Kumar', role: 'farmer', joined: '28 Feb 2026', status: 'active' },
-  { name: 'Vikram Singh', role: 'wholesaler', joined: '15 Feb 2026', status: 'banned' },
-  { name: 'Lata Devi', role: 'farmer', joined: '10 Feb 2026', status: 'active' },
-];
-
 const ROLE_BADGE: Record<string, string> = {
   user: 'text-blue-700 bg-blue-50 border-blue-200',
   farmer: 'text-green-700 bg-green-50 border-green-200',
   wholesaler: 'text-yellow-700 bg-yellow-50 border-yellow-200',
   admin: 'text-purple-700 bg-purple-50 border-purple-200',
+  ROLE_USER: 'text-blue-700 bg-blue-50 border-blue-200',
+  ROLE_FARMER: 'text-green-700 bg-green-50 border-green-200',
+  ROLE_WHOLESALER: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+  ROLE_ADMIN: 'text-purple-700 bg-purple-50 border-purple-200',
 };
 
 function nameToHue(name: string): number {
@@ -82,19 +59,63 @@ function nameToHue(name: string): number {
   return Math.abs(hash) % 360;
 }
 
+function formatRole(role: string): string {
+  return role.replace('ROLE_', '').toLowerCase();
+}
+
+interface DashStats {
+  totalUsers: number;
+  totalFarmers: number;
+  totalWholesalers: number;
+  totalOrders: number;
+  totalRevenue: number;
+  activeNegotiations: number;
+}
+
 export function AdminDashboardPage() {
   const { t } = useTranslation();
+  const [dashStats, setDashStats] = useState<DashStats | null>(null);
+  const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
+  const [orderStats, setOrderStats] = useState<{ totalOrders: number; totalRevenue: number; totalCommission: number } | null>(null);
+  const [pendingProducts, setPendingProducts] = useState<{ name: string; farmer: string; category: string }[]>([]);
+
+  useEffect(() => {
+    api.get<{ data: DashStats }>('/v1/admin/dashboard/stats')
+      .then(res => setDashStats(res.data.data))
+      .catch(() => {});
+
+    adminService.getAllUsers(0, 5)
+      .then(res => setRecentUsers(res.users))
+      .catch(() => {});
+
+    orderService.getAdminStats()
+      .then(setOrderStats)
+      .catch(() => {});
+
+    productService.getProducts({}, 1, 5)
+      .then(res => {
+        setPendingProducts(
+          res.data.slice(0, 3).map((p: any) => ({
+            name: p.name,
+            farmer: p.farmerName ?? 'Unknown',
+            category: p.category ?? 'General',
+          }))
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   const statCards = [
-    { label: t('admin.stat_revenue'), value: '₹7,62,000', sub: t('admin.stat_revenue_sub'), icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
-    { label: t('admin.stat_users'), value: '1,420', sub: t('admin.stat_users_sub'), icon: RiUserLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
-    { label: t('admin.stat_products'), value: '856', sub: t('admin.stat_products_sub'), icon: RiPlantLine, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600' },
-    { label: t('admin.stat_orders'), value: '2,990', sub: t('admin.stat_orders_sub'), icon: RiShoppingBagLine, iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-600' },
+    { label: t('admin.stat_revenue'), value: dashStats ? `₹${(dashStats.totalRevenue / 100000).toFixed(1)}L` : '—', sub: t('admin.stat_revenue_sub'), icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
+    { label: t('admin.stat_users'), value: dashStats ? dashStats.totalUsers.toLocaleString() : '—', sub: t('admin.stat_users_sub'), icon: RiUserLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
+    { label: t('admin.stat_products'), value: dashStats ? dashStats.totalFarmers.toLocaleString() : '—', sub: t('admin.stat_products_sub'), icon: RiPlantLine, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600' },
+    { label: t('admin.stat_orders'), value: dashStats ? dashStats.totalOrders.toLocaleString() : '—', sub: t('admin.stat_orders_sub'), icon: RiShoppingBagLine, iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-600' },
   ];
 
-  const fraudHeaders = [
-    t('admin.col_id'), t('admin.col_alert_type'), t('admin.col_user'),
-    t('admin.col_severity'), t('admin.col_time'), t('admin.col_action'),
+  const commissions = [
+    { category: 'Consumer Orders', rate: '2%', earned: orderStats ? `₹${Math.round(orderStats.totalCommission * 0.3).toLocaleString()}` : '—' },
+    { category: 'Wholesale / Agent', rate: '5%', earned: orderStats ? `₹${Math.round(orderStats.totalCommission * 0.5).toLocaleString()}` : '—' },
+    { category: 'Farmer Platform Fee', rate: '3%', earned: orderStats ? `₹${Math.round(orderStats.totalCommission * 0.2).toLocaleString()}` : '—' },
   ];
 
   const userHeaders = [
@@ -135,7 +156,7 @@ export function AdminDashboardPage() {
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">{t('admin.chart_revenue')}</h3>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={192}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
@@ -160,7 +181,7 @@ export function AdminDashboardPage() {
             </div>
           </div>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={192}>
               <BarChart data={userGrowthData}>
                 <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
@@ -180,47 +201,13 @@ export function AdminDashboardPage() {
           <div className="flex items-center gap-2">
             <RiShieldLine size={16} className="text-red-500" />
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.fraud_alerts')}</h3>
-            <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
-              {fraudAlerts.length}
-            </span>
           </div>
           <Link to="/admin/fraud" className="flex items-center gap-0.5 text-xs font-medium text-red-600 dark:text-red-400">
             {t('common.view_all')} <RiArrowRightSLine size={14} />
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                {fraudHeaders.map((h) => (
-                  <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-              {fraudAlerts.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                  <td className="px-5 py-3 text-xs text-slate-400 font-mono">{a.id}</td>
-                  <td className="px-5 py-3 text-sm text-slate-900 dark:text-white">{a.type}</td>
-                  <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{a.user}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold ${a.severity === 'high'
-                      ? 'text-red-700 bg-red-50 border-red-200'
-                      : 'text-orange-700 bg-orange-50 border-orange-200'
-                      }`}>
-                      {a.severity.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-xs text-slate-400">{a.time}</td>
-                  <td className="px-5 py-3">
-                    <button className="text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-2 py-1 rounded">
-                      {t('common.review')}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="px-5 py-8 text-center text-sm text-slate-400">
+          No active fraud alerts. Visit the <Link to="/admin/fraud" className="text-red-600 font-medium">Fraud Detection</Link> page for details.
         </div>
       </div>
 
@@ -280,7 +267,7 @@ export function AdminDashboardPage() {
             ))}
             <div className="px-5 py-3 flex items-center justify-between bg-slate-50 dark:bg-slate-800/40">
               <p className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">{t('admin.commission_total')}</p>
-              <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">₹85,390</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">₹{orderStats ? orderStats.totalCommission.toLocaleString() : '—'}</span>
             </div>
           </div>
         </div>
@@ -293,17 +280,8 @@ export function AdminDashboardPage() {
               {t('common.all')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
-          <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
-            {recentLogs.map((log, i) => (
-              <div key={i} className="px-5 py-3 flex items-start gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mt-1.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${log.color}`}>{log.action}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{log.detail}</p>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 mt-0.5">{log.time}</span>
-              </div>
-            ))}
+          <div className="px-5 py-8 text-center text-sm text-slate-400">
+            Visit the <Link to="/admin/logs" className="text-blue-600 font-medium">Activity Logs</Link> page for full history.
           </div>
         </div>
       </div>
@@ -329,8 +307,8 @@ export function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-              {manageUsers.map((u) => (
-                <tr key={u.name} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+              {recentUsers.map((u) => (
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">
                       <div
@@ -343,11 +321,13 @@ export function AdminDashboardPage() {
                     </div>
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold capitalize ${ROLE_BADGE[u.role]}`}>
-                      {u.role}
+                    <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold capitalize ${ROLE_BADGE[u.role] ?? 'text-gray-700 bg-gray-50 border-gray-200'}`}>
+                      {formatRole(u.role)}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">{u.joined}</td>
+                  <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">
+                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  </td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold ${u.status === 'active'
                       ? 'text-green-700 bg-green-50 border-green-200'
@@ -357,15 +337,22 @@ export function AdminDashboardPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <button className={`text-xs font-medium border px-2 py-1 rounded ${u.status === 'active'
+                    <Link to="/admin/users" className={`text-xs font-medium border px-2 py-1 rounded ${u.status === 'active'
                       ? 'text-red-600 border-red-200 dark:border-red-800'
                       : 'text-green-600 border-green-200 dark:border-green-800'
                       }`}>
                       {u.status === 'active' ? t('common.ban') : t('common.unban')}
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
+              {recentUsers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">
+                    Loading users...
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

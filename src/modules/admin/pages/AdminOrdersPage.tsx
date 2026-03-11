@@ -31,7 +31,7 @@ export function AdminOrdersPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await api.get('/v1/orders', { params: { page: 0, size: 50 } });
+            const response = await api.get('/v1/orders/admin/all', { params: { page: 0, size: 50 } });
             setOrders(response.data.data.content || []);
         } catch (err) {
             setError((err as Error).message || 'Failed to fetch orders');
@@ -44,7 +44,7 @@ export function AdminOrdersPage() {
         try {
             // Fetch all users to populate the delivery partner dropdown
             // (Assuming /v1/users exists and returns users list)
-            const response = await api.get('/v1/users', { params: { role: 'user', size: 100 } });
+            const response = await api.get('/v1/users', { params: { page: 0, size: 100 } });
             setUsers(response.data.data.content || []);
         } catch (err) {
             console.error('Failed to load users for assignment', err);
@@ -150,7 +150,7 @@ export function AdminOrdersPage() {
                                         </td>
                                         <td className="px-5 py-4">
                                             {assigningOrderId === order.id ? (
-                                                <div className="flex flex-col gap-2 min-w-[200px]">
+                                                <div className="flex flex-col gap-2 min-w-50">
                                                     <select
                                                         value={selectedPartnerId}
                                                         onChange={(e) => setSelectedPartnerId(e.target.value)}

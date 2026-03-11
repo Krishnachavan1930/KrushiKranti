@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { productService } from "../product/productService";
 import type { CreateProductData } from "../product/productService";
+import api from "../../services/api";
 
 interface FarmerState {
   products: FarmerProduct[];
@@ -18,11 +19,14 @@ interface FarmerState {
   error: string | null;
 }
 
-const mockStats: FarmerStats = {
+const defaultStats: FarmerStats = {
   totalProducts: 0,
   totalOrders: 0,
   totalRevenue: 0,
   pendingOrders: 0,
+  completedOrders: 0,
+  activeOrders: 0,
+  topSellingProduct: "-",
 };
 
 const mockRevenueData: RevenueData[] = [
@@ -42,12 +46,7 @@ const mockRevenueData: RevenueData[] = [
 
 const initialState: FarmerState = {
   products: [],
-  stats: {
-    totalProducts: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-  },
+  stats: { ...defaultStats },
   revenueData: [],
   isLoading: false,
   isSubmitting: false,
@@ -98,9 +97,19 @@ export const fetchFarmerStats = createAsyncThunk(
   "farmer/fetchStats",
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: Replace with real stats API when available
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      return { stats: mockStats, revenueData: mockRevenueData };
+      const res = await api.get("/v1/farmer/dashboard/stats");
+      const d = res.data.data;
+      const stats: FarmerStats = {
+        totalRevenue: Number(d.totalRevenue) || 0,
+        totalOrders: Number(d.totalOrders) || 0,
+        completedOrders: Number(d.completedOrders) || 0,
+        activeOrders: Number(d.activeOrders) || 0,
+        topSellingProduct: d.topSellingProduct || "-",
+        // totalProducts is maintained from products array
+        totalProducts: 0,
+        pendingOrders: 0,
+      };
+      return { stats, revenueData: mockRevenueData };
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }

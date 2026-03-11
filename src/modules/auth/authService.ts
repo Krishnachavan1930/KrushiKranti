@@ -279,4 +279,28 @@ export const authService = {
       );
     }
   },
+
+  async createAdmin(data: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<{ message: string }> {
+    try {
+      const response = await api.post<{ data: string }>(
+        "/v1/auth/create-admin",
+        data,
+      );
+      return { message: response.data.data || "Admin created successfully" };
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      throw new Error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to create admin account",
+      );
+    }
+  },
 };

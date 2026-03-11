@@ -20,6 +20,7 @@ import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import { setUser } from '../../modules/auth/authSlice';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 /* ─── helpers ─────────────────────────────────────────────────────────────────*/
 function formatDate(iso: string) {
@@ -154,16 +155,28 @@ export function ProfilePage() {
 
     if (!user) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-gray-950">
+            <div className="min-h-screen flex items-center justify-center bg-soft-bg dark:bg-gray-950">
                 <p className="text-slate-500">Please log in to view your profile.</p>
             </div>
         );
     }
 
     /* ── helpers ── */
-    const saveField = (field: keyof typeof draft) => {
-        dispatch(setUser({ ...user, [field]: draft[field] }));
-        toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
+    const saveField = async (field: keyof typeof draft) => {
+        try {
+            // Backend only stores name and phone; address is local-only
+            if (field === 'name' || field === 'phone') {
+                const res = await api.put<{ data: { name: string; phone: string } }>('/v1/users/me', {
+                    [field]: draft[field],
+                });
+                dispatch(setUser({ ...user, [field]: (res.data as Record<string, any>).data?.[field] ?? draft[field] }));
+            } else {
+                dispatch(setUser({ ...user, [field]: draft[field] }));
+            }
+            toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
+        } catch {
+            toast.error('Failed to save. Please try again.');
+        }
         setEditing(null);
     };
     const cancelField = (field: keyof typeof draft) => {
@@ -199,7 +212,7 @@ export function ProfilePage() {
     const avatarBg = `linear-gradient(135deg, hsl(${hue},55%,52%), hsl(${hue},65%,38%))`;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950">
+        <div className="min-h-screen bg-soft-bg dark:bg-gray-950">
             {/* ── Page header ── */}
             <div className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-5">
                 <div className="max-w-5xl mx-auto">

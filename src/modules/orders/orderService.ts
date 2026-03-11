@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "./types";
+import type { Order, OrderItem, OrderStatus } from "./types";
 import api from "../../services/api";
 
 // Helper to extract error message from API errors
@@ -46,6 +46,42 @@ export interface PaginatedOrderResponse {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+/**
+ * Backend returns flat OrderResponse (no items array).
+ * This normalises it so the frontend Order shape is always correct.
+ */
+function normalizeOrder(raw: Record<string, any>): Order {
+  // Build a single-item array from top-level product fields
+  const syntheticItem: OrderItem = {
+    id: String(raw.productId ?? raw.id ?? ""),
+    productId: String(raw.productId ?? ""),
+    name: raw.productName ?? "Product",
+    price:
+      raw.quantity && raw.quantity > 1
+        ? Number(raw.totalPrice ?? raw.totalAmount ?? 0) / raw.quantity
+        : Number(raw.totalPrice ?? raw.totalAmount ?? 0),
+    quantity: raw.quantity ?? 1,
+    image: raw.productImage ?? "",
+    unit: "unit",
+  };
+
+  return {
+    ...raw,
+    id: String(raw.id),
+    totalAmount: Number(raw.totalAmount ?? raw.totalPrice ?? 0),
+    status: ((raw.status as string) ?? "pending").toLowerCase() as OrderStatus,
+    paymentStatus: raw.paymentStatus ?? "pending",
+    paymentMethod: raw.paymentMethod ?? "Online",
+    shippingAddress: raw.shippingAddress ?? "",
+    // Use existing items if already an array, otherwise synthesize
+    items: Array.isArray(raw.items) && raw.items.length > 0
+      ? raw.items.map((it: Record<string, any>) => ({ ...it, id: String(it.id) }))
+      : [syntheticItem],
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    updatedAt: raw.updatedAt ?? new Date().toISOString(),
+  } as Order;
 }
 
 export interface UpdateOrderStatusData {
@@ -131,7 +167,7 @@ export const orderService = {
 
       const pageData = response.data.data;
       return {
-        data: pageData.content || [],
+        data: (pageData.content || []).map(normalizeOrder),
         total: pageData.totalElements || 0,
         page: (pageData.number || 0) + 1,
         limit: pageData.size || limit,
@@ -170,7 +206,7 @@ export const orderService = {
 
       const pageData = response.data.data;
       return {
-        data: pageData.content || [],
+        data: (pageData.content || []).map(normalizeOrder),
         total: pageData.totalElements || 0,
         page: (pageData.number || 0) + 1,
         limit: pageData.size || limit,
@@ -186,8 +222,8 @@ export const orderService = {
    */
   async getOrderById(orderId: string): Promise<Order> {
     try {
-      const response = await api.get<{ data: Order }>(`/v1/orders/${orderId}`);
-      return response.data.data;
+      const response = await api.get<{ data: Record<string, any> }>(`/v1/orders/${orderId}`);
+      return normalizeOrder(response.data.data);
     } catch (error) {
       throw new Error(getErrorMessage(error, "Failed to fetch order details"));
     }
@@ -246,7 +282,7 @@ export const orderService = {
           number: number;
           size: number;
         };
-      }>(`/v1/orders?${params.toString()}`);
+      }>(`/v1/orders/admin/all?${params.toString()}`);
 
       const pageData = response.data.data;
       return {

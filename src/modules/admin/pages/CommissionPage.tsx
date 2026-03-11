@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { IndianRupee, TrendingUp, Percent, Loader } from 'lucide-react';
+import { IndianRupee, TrendingUp, Percent, Loader, Info } from 'lucide-react';
 import { orderService } from '../../orders/orderService';
+import type { Order } from '../../orders/types';
 
 // Interface for admin stats
 interface AdminStats {
@@ -13,7 +14,7 @@ interface AdminStats {
   deliveredOrders: number;
 }
 
-// Mock commission data (placeholder - can be replaced with real API)
+// Demo monthly chart data — no backend time-series API yet
 const monthlyCommissions = [
   { month: 'Jan', commission: 42500, orders: 850 },
   { month: 'Feb', commission: 46000, orders: 920 },
@@ -23,43 +24,37 @@ const monthlyCommissions = [
   { month: 'Jun', commission: 91000, orders: 1820 },
 ];
 
-const recentCommissions = [
-  { id: '1', orderId: 'ORD-2024-001', orderAmount: 5000, commission: 250, farmerName: 'Ramesh Kumar', date: '2024-01-25' },
-  { id: '2', orderId: 'ORD-2024-002', orderAmount: 12000, commission: 600, farmerName: 'Suresh Patel', date: '2024-01-25' },
-  { id: '3', orderId: 'ORD-2024-003', orderAmount: 3500, commission: 175, farmerName: 'Mahesh Yadav', date: '2024-01-24' },
-  { id: '4', orderId: 'ORD-2024-004', orderAmount: 8200, commission: 410, farmerName: 'Prakash Deshmukh', date: '2024-01-24' },
-  { id: '5', orderId: 'ORD-2024-005', orderAmount: 15000, commission: 750, farmerName: 'Anil Sharma', date: '2024-01-24' },
-  { id: '6', orderId: 'ORD-2024-006', orderAmount: 6500, commission: 325, farmerName: 'Vikram Singh', date: '2024-01-23' },
-  { id: '7', orderId: 'ORD-2024-007', orderAmount: 9800, commission: 490, farmerName: 'Ramesh Kumar', date: '2024-01-23' },
-  { id: '8', orderId: 'ORD-2024-008', orderAmount: 4200, commission: 210, farmerName: 'Meena Devi', date: '2024-01-22' },
-];
-
 export function CommissionPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const data = await orderService.getAdminStats();
-        setStats(data);
+        const [statsData, ordersData] = await Promise.all([
+          orderService.getAdminStats(),
+          orderService.getAllOrders(1, 10),
+        ]);
+        setStats(statsData);
+        setRecentOrders(ordersData.data);
       } catch (err) {
         setError((err as Error).message);
-        console.error('Failed to load admin stats:', err);
+        console.error('Failed to load commission data:', err);
       } finally {
         setLoading(false);
       }
     };
-    loadStats();
+    loadData();
   }, []);
 
-  // Use real data if available, else fall back to mock values
-  const totalEarnings = stats?.totalCommission ?? monthlyCommissions.reduce((acc, curr) => acc + curr.commission, 0);
-  const totalOrders = stats?.totalOrders ?? monthlyCommissions.reduce((acc, curr) => acc + curr.orders, 0);
+  // Use real data if available, else fall back to defaults
+  const totalEarnings = stats?.totalCommission ?? 0;
+  const totalOrders = stats?.totalOrders ?? 0;
   const avgCommission = totalOrders > 0 ? Math.round(totalEarnings / totalOrders) : 0;
-  const totalRevenue = stats?.totalRevenue ?? totalEarnings * 20; // 5% commission rate
+  const totalRevenue = stats?.totalRevenue ?? 0;
 
   if (loading) {
     return (
@@ -136,7 +131,12 @@ export function CommissionPage() {
 
       {/* Monthly Breakdown Chart */}
       <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Monthly Commission Breakdown</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-900">Monthly Commission Breakdown</h3>
+          <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+            <Info size={12} /> Demo chart data
+          </span>
+        </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyCommissions}>
@@ -159,48 +159,54 @@ export function CommissionPage() {
           <h3 className="text-sm font-semibold text-gray-900">Commission Per Order</h3>
         </div>
         
-        {/* Desktop Table */}
-        <div className="hidden md:block">
-          <table className="w-full">
-            <thead className="bg-green-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Order ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Farmer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Order Amount</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Commission (10%)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {recentCommissions.map(comm => (
-                <tr key={comm.id}>
-                  <td className="px-4 py-3 text-sm font-medium text-green-600">{comm.orderId}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{comm.farmerName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{new Date(comm.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right">₹{comm.orderAmount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-green-600 text-right">₹{comm.commission}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden divide-y divide-gray-100">
-          {recentCommissions.map(comm => (
-            <div key={comm.id} className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-green-600">{comm.orderId}</span>
-                <span className="text-xs text-gray-500">{new Date(comm.date).toLocaleDateString()}</span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{comm.farmerName}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Order: ₹{comm.orderAmount.toLocaleString()}</span>
-                <span className="text-sm font-semibold text-green-600">Commission: ₹{comm.commission}</span>
-              </div>
+        {recentOrders.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 text-sm">No orders found</div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <table className="w-full">
+                <thead className="bg-green-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Order ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Farmer</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase">Date</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Order Amount</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-green-800 uppercase">Commission (10%)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {recentOrders.map(order => (
+                    <tr key={order.id}>
+                      <td className="px-4 py-3 text-sm font-medium text-green-600">#{order.id}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{order.farmerName || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right">₹{(order.totalPrice ?? order.totalAmount ?? 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-green-600 text-right">₹{(order.adminCommission ?? Math.round((order.totalPrice ?? order.totalAmount ?? 0) * 0.1)).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {recentOrders.map(order => (
+                <div key={order.id} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-green-600">#{order.id}</span>
+                    <span className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{order.farmerName || '-'}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Order: ₹{(order.totalPrice ?? order.totalAmount ?? 0).toLocaleString()}</span>
+                    <span className="text-sm font-semibold text-green-600">Commission: ₹{(order.adminCommission ?? Math.round((order.totalPrice ?? order.totalAmount ?? 0) * 0.1)).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

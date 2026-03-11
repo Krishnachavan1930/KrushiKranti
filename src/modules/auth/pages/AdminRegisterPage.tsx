@@ -5,79 +5,48 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../../shared/hooks';
-import { register as registerUser, createAdmin, clearError } from '../authSlice';
-import { Eye, EyeOff, UserPlus, ShieldCheck, Loader2 } from 'lucide-react';
-import type { Role } from '../types';
-import { GoogleLoginButton } from '../components/GoogleLoginButton';
-import { useTranslation } from 'react-i18next';
+import { createAdmin, clearError } from '../authSlice';
+import { Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 
-const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+const adminRegisterSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
   email: z.string().email('Please enter a valid email'),
-  password: z.string()
+  password: z
+    .string()
     .min(8, 'Password must be at least 8 characters')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/\d/, 'Password must contain at least one digit'),
+    .regex(/[a-z]/, 'Must contain at least one lowercase letter')
+    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+    .regex(/\d/, 'Must contain at least one digit'),
   confirmPassword: z.string(),
-  role: z.enum(['farmer', 'wholesaler', 'user', 'admin'] as const),
-  phone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
 });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type AdminRegisterFormData = z.infer<typeof adminRegisterSchema>;
 
-export function RegisterPage() {
-  const { t } = useTranslation();
+export function AdminRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { registerLoading, adminCreateLoading, adminCreateError, error } = useAppSelector((state) => state.auth);
-  const isLoading = registerLoading || adminCreateLoading;
-
-  const roleOptions: { value: Role; label: string; description: string }[] = [
-    { value: 'user', label: t('auth.role_consumer', 'Consumer'), description: t('auth.role_consumer_desc', 'Buy products retail') },
-    { value: 'farmer', label: t('auth.role_farmer', 'Farmer'), description: t('auth.role_farmer_desc', 'Sell your produce') },
-    { value: 'wholesaler', label: t('auth.role_wholesaler', 'Wholesaler'), description: t('auth.role_wholesaler_desc', 'Buy in bulk') },
-    { value: 'admin', label: 'Administrator', description: 'Full platform management access' },
-  ];
+  const { adminCreateLoading, adminCreateError } = useAppSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: 'user',
-    },
+  } = useForm<AdminRegisterFormData>({
+    resolver: zodResolver(adminRegisterSchema),
   });
 
-  const selectedRole = watch('role');
-
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (data: AdminRegisterFormData) => {
     dispatch(clearError());
     const { confirmPassword: _, ...payload } = data;
-
-    if (payload.role === 'admin') {
-      const result = await dispatch(createAdmin({ name: payload.name, email: payload.email, password: payload.password }));
-      if (createAdmin.fulfilled.match(result)) {
-        toast.success('Admin account created! Please sign in.');
-        navigate('/admin/login');
-      } else {
-        toast.error(result.payload as string);
-      }
-      return;
-    }
-
-    const result = await dispatch(registerUser(payload));
-    if (registerUser.fulfilled.match(result)) {
-      toast.success(t('auth.otp_sent', 'OTP has been sent to your email!'));
-      navigate('/verify-otp');
+    const result = await dispatch(createAdmin(payload));
+    if (createAdmin.fulfilled.match(result)) {
+      toast.success('Admin account created successfully!');
+      navigate('/admin/login');
     } else {
       toast.error(result.payload as string);
     }
@@ -86,35 +55,35 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="p-8 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-          <div className="text-center mb-10">
+        <div className="p-8 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-none">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-900/20 mb-4">
+              <ShieldCheck className="text-primary-600" size={24} />
+            </div>
             <h1 className="text-2xl font-black text-primary-600">
               Krushi<span className="text-accent-500">Kranti</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-bold uppercase tracking-widest">
-              {t('auth.create_account')}
+              Create Admin Account
             </p>
           </div>
 
-          {selectedRole === 'admin' && (
-            <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded flex items-start gap-2">
-              <ShieldCheck size={14} className="text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">
-                Admin accounts have full platform access. No email verification required.
-              </p>
-            </div>
-          )}
+          <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded">
+            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest text-center">
+              Admin accounts have full platform access
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('common.profile')}
+                Full Name
               </label>
               <input
                 type="text"
                 {...register('name')}
                 className="input-field"
-                placeholder="Full Name"
+                placeholder="Admin Full Name"
               />
               {errors.name && (
                 <p className="mt-1 text-[10px] font-bold text-red-500 uppercase">{errors.name.message}</p>
@@ -123,37 +92,22 @@ export function RegisterPage() {
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.email')}
+                Email Address
               </label>
               <input
                 type="email"
                 {...register('email')}
                 className="input-field"
-                placeholder="you@email.com"
+                placeholder="admin@krushikranti.com"
               />
               {errors.email && (
                 <p className="mt-1 text-[10px] font-bold text-red-500 uppercase">{errors.email.message}</p>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                  {t('auth.role')}
-                </label>
-                <select {...register('role')} className="input-field">
-                  {roleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.password')}
+                Password
               </label>
               <div className="relative">
                 <input
@@ -173,11 +127,14 @@ export function RegisterPage() {
               {errors.password && (
                 <p className="mt-1 text-[10px] font-bold text-red-500 uppercase">{errors.password.message}</p>
               )}
+              <p className="mt-1 text-[9px] text-slate-400 uppercase tracking-wide">
+                Min 8 chars · uppercase · lowercase · digit
+              </p>
             </div>
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.confirm_password')}
+                Confirm Password
               </label>
               <div className="relative">
                 <input
@@ -199,49 +156,36 @@ export function RegisterPage() {
               )}
             </div>
 
-            {(error || adminCreateError) && (
+            {adminCreateError && (
               <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded">
-                <p className="text-[10px] font-bold text-red-600 uppercase">{error || adminCreateError}</p>
+                <p className="text-[10px] font-bold text-red-600 uppercase">{adminCreateError}</p>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={adminCreateLoading}
               className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 text-xs tracking-widest uppercase"
             >
-              {isLoading ? (
+              {adminCreateLoading ? (
                 <Loader2 className="animate-spin" size={16} />
-              ) : selectedRole === 'admin' ? (
+              ) : (
                 <>
                   <ShieldCheck size={16} />
                   Create Admin Account
-                </>
-              ) : (
-                <>
-                  <UserPlus size={16} />
-                  {t('auth.create_account')}
                 </>
               )}
             </button>
           </form>
 
-          <div className="my-8 flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800"></div>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-extrabold">{t('auth.or')}</span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800"></div>
-          </div>
-
-          <GoogleLoginButton />
-
-          <div className="mt-10 text-center">
+          <div className="mt-8 text-center">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t('auth.already_have_account')}{' '}
+              Already have an admin account?{' '}
               <Link
-                to="/login"
-                className="text-primary-600 font-extrabold uppercase tracking-tighter"
+                to="/admin/login"
+                className="text-primary-600 font-bold uppercase tracking-tighter"
               >
-                {t('auth.login_here')}
+                Admin Login
               </Link>
             </p>
           </div>

@@ -29,7 +29,7 @@ export function CheckoutPage() {
     const dispatch = useAppDispatch();
     const { items, subtotal } = useAppSelector((state) => state.cart);
     const { user } = useAppSelector((state) => state.auth);
-    const { paymentStatus, paymentLoading, orderId } = useAppSelector((state) => state.payment);
+    const { paymentLoading, orderId } = useAppSelector((state) => state.payment);
     const [isSuccess, setIsSuccess] = useState(false);
     const [shouldRedirectToCart, setShouldRedirectToCart] = useState(false);
 
@@ -60,11 +60,6 @@ export function CheckoutPage() {
     });
 
     const onSubmit = async (data: CheckoutFormData) => {
-        // Build shipping address string
-        const shippingAddress = `${data.address}, ${data.city}, ${data.zipCode}`;
-
-        // Prepare order data from cart items
-        // Note: item.productId is the actual product ID, item.id is the cart item ID
         const orderData = {
             items: items.map(item => ({
                 productId: item.productId,
@@ -79,29 +74,26 @@ export function CheckoutPage() {
         };
 
         try {
-            // Step 1: Create internal order first
-            const orderResponse = await dispatch(createOrder(orderData)).unwrap();
-            const internalOrderId = Number(orderResponse.id);
-
             if (data.paymentMethod === 'cod') {
+                await dispatch(createOrder(orderData)).unwrap();
                 setIsSuccess(true);
                 dispatch(clearCart());
                 toast.success('Order placed successfully!');
                 return;
             }
 
-            // Step 2: Create Razorpay payment order using internal order ID
-            const paymentOrderResult = await dispatch(createPaymentOrder(internalOrderId)).unwrap();
+            // Step 1: Create only the Razorpay order; DB orders are created after verification.
+            const paymentOrderResult = await dispatch(createPaymentOrder(orderData)).unwrap();
             const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SOIVBnOF5D2L0j';
 
-            // Step 3: Open Razorpay checkout
+            // Step 2: Open Razorpay checkout
             await initializeRazorpayPayment({
                 key: rzpKey,
-                amount: subtotal * 100,
-                currency: 'INR',
+                amount: paymentOrderResult.amount,
+                currency: paymentOrderResult.currency,
                 name: 'KrushiKranti',
                 description: 'Order Payment',
-                order_id: paymentOrderResult.orderId,
+                order_id: paymentOrderResult.razorpayOrderId,
                 prefill: {
                     name: data.fullName,
                     email: data.email,
@@ -111,7 +103,7 @@ export function CheckoutPage() {
                     color: '#16a34a',
                 },
                 handler: async (response: any) => {
-                    // Step 4: Verify payment signature
+                    // Step 3: Verify payment; backend will create DB orders only after success.
                     const verificationResult = await dispatch(verifyPayment(response)).unwrap();
                     if (verificationResult.success) {
                         setIsSuccess(true);
@@ -286,9 +278,9 @@ export function CheckoutPage() {
                                 {items.map((item) => (
                                     <div key={item.id} className="flex justify-between items-center">
                                         <div className="flex items-center gap-3">
-                                            <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-md" />
+                                            <img src={item.productImage} alt={item.productName} className="w-12 h-12 object-cover rounded-md" />
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{item.name}</p>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{item.productName}</p>
                                                 <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                                             </div>
                                         </div>

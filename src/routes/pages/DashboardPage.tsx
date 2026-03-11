@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   RiShoppingBagLine,
@@ -7,9 +8,11 @@ import {
   RiCheckboxCircleLine,
   RiMapPinLine,
   RiArrowUpLine,
+  RiLoader4Line,
 } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
-import { useAppSelector } from '../../shared/hooks';
+import { useAppDispatch, useAppSelector } from '../../shared/hooks';
+import { fetchOrders } from '../../modules/orders/orderSlice';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const spendData = [
@@ -19,12 +22,6 @@ const spendData = [
   { month: 'Jan', amount: 1800 },
   { month: 'Feb', amount: 1350 },
   { month: 'Mar', amount: 2100 },
-];
-
-const recentOrders = [
-  { id: 'ORD-001', product: 'Organic Tomatoes', qty: '5 kg', amount: 200, status: 'shipped', date: '2 Mar 2026' },
-  { id: 'ORD-002', product: 'Basmati Rice', qty: '10 kg', amount: 550, status: 'delivered', date: '28 Feb 2026' },
-  { id: 'ORD-003', product: 'Alphonso Mangoes', qty: '2 kg', amount: 300, status: 'pending', date: '1 Mar 2026' },
 ];
 
 const statusColors: Record<string, string> = {
@@ -38,8 +35,26 @@ const statusColors: Record<string, string> = {
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const wishlistCount = useAppSelector((state) => state.wishlist?.items?.length ?? 0);
+  const { orders, isLoading, pagination } = useAppSelector((state) => state.orders);
+
+  useEffect(() => {
+    dispatch(fetchOrders({ status: 'all', page: 1, limit: 5 }));
+  }, [dispatch]);
+
+  const recentOrders = orders.slice(0, 3);
+
+  const totalSpent = useMemo(
+    () => orders.filter((o) => o.status === 'delivered').reduce((sum, o) => sum + (o.totalAmount ?? 0), 0),
+    [orders],
+  );
+
+  const inTransit = useMemo(
+    () => orders.filter((o) => o.status === 'shipped' || o.status === 'processing').length,
+    [orders],
+  );
 
   const trackingSteps = [
     { label: t('user_dashboard.tracking_placed'), done: true, icon: RiShoppingBagLine },
@@ -50,10 +65,10 @@ export function DashboardPage() {
   ];
 
   const statCards = [
-    { label: t('user_dashboard.stat_orders'), value: '24', sub: t('user_dashboard.stat_orders_sub'), icon: RiShoppingBagLine },
-    { label: t('user_dashboard.stat_spent'), value: '₹8,240', sub: t('user_dashboard.stat_spent_sub'), icon: RiArrowUpLine },
+    { label: t('user_dashboard.stat_orders'), value: String(pagination.total || orders.length), sub: t('user_dashboard.stat_orders_sub'), icon: RiShoppingBagLine },
+    { label: t('user_dashboard.stat_spent'), value: `₹${totalSpent.toLocaleString('en-IN')}`, sub: t('user_dashboard.stat_spent_sub'), icon: RiArrowUpLine },
     { label: t('user_dashboard.stat_wishlist'), value: String(wishlistCount), sub: t('user_dashboard.stat_wishlist_sub'), icon: RiHeartLine },
-    { label: t('user_dashboard.stat_transit'), value: '2', sub: t('user_dashboard.stat_transit_sub'), icon: RiTruckLine },
+    { label: t('user_dashboard.stat_transit'), value: String(inTransit), sub: t('user_dashboard.stat_transit_sub'), icon: RiTruckLine },
   ];
 
   const orderHeaders = [
@@ -117,21 +132,47 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                {recentOrders.map((o) => (
-                  <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-5 py-3">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{o.product}</p>
-                      <p className="text-[10px] text-slate-400">{o.id}</p>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{o.qty}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">₹{o.amount}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-semibold capitalize ${statusColors[o.status]}`}>
-                        {o.status}
-                      </span>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center">
+                      <RiLoader4Line className="animate-spin text-green-600 mx-auto" size={20} />
                     </td>
                   </tr>
-                ))}
+                ) : recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">
+                      No orders yet.{' '}
+                      <Link to="/products" className="text-green-700 dark:text-green-400 underline">
+                        Browse products
+                      </Link>
+                    </td>
+                  </tr>
+                ) : (
+                  recentOrders.map((o) => {
+                    const item = o.items?.[0];
+                    return (
+                      <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-5 py-3">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-35">
+                            {item?.name ?? o.productName ?? 'Product'}
+                          </p>
+                          <p className="text-[10px] text-slate-400">#{o.id}</p>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">
+                          {item?.quantity ?? o.quantity ?? 1}
+                        </td>
+                        <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white">
+                          ₹{(o.totalAmount ?? 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-semibold capitalize ${statusColors[o.status] ?? ''}`}>
+                            {o.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -141,14 +182,20 @@ export function DashboardPage() {
         <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('user_dashboard.live_tracking')}</h3>
-            <Link
-              to="/orders/ORD-001/track"
-              className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-0.5"
-            >
-              {t('common.full_view')} <RiArrowRightSLine size={14} />
-            </Link>
+            {orders.find((o) => o.status === 'shipped' || o.status === 'processing') && (
+              <Link
+                to={`/orders/${orders.find((o) => o.status === 'shipped' || o.status === 'processing')?.id}/track`}
+                className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-0.5"
+              >
+                {t('common.full_view')} <RiArrowRightSLine size={14} />
+              </Link>
+            )}
           </div>
-          <p className="text-[10px] text-slate-400 mb-5">ORD-001 · Organic Tomatoes</p>
+          <p className="text-[10px] text-slate-400 mb-5">
+            {orders.find((o) => o.status === 'shipped' || o.status === 'processing')
+              ? `#${orders.find((o) => o.status === 'shipped' || o.status === 'processing')?.id} · ${orders.find((o) => o.status === 'shipped' || o.status === 'processing')?.items?.[0]?.name ?? 'Order'}`
+              : 'No active shipments'}
+          </p>
 
           <div className="space-y-1">
             {trackingSteps.map((step, i) => {

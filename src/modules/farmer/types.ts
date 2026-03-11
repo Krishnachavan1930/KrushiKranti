@@ -21,6 +21,9 @@ export interface FarmerStats {
   totalOrders: number;
   totalRevenue: number;
   pendingOrders: number;
+  completedOrders: number;
+  activeOrders: number;
+  topSellingProduct: string;
 }
 
 export interface RevenueData {

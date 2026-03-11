@@ -93,7 +93,7 @@ export function BlogPage() {
                             </p>
 
                             <Link
-                                to={`/blog/${post.id}`}
+                                to={`/blog/${post.slug || post.id}`}
                                 className="inline-flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest group/btn"
                             >
                                 <span>{t("blog.read_more")}</span>

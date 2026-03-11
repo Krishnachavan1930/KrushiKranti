@@ -1,7 +1,7 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   RiArrowRightSLine,
-  RiArrowUpLine,
   RiShoppingBagLine,
   RiPlantLine,
   RiAlertLine,
@@ -9,9 +9,13 @@ import {
   RiDeleteBinLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
+  RiCheckboxCircleLine,
+  RiLoader4Line,
+  RiTrophyLine,
 } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
-import { useAppSelector } from '../../../shared/hooks';
+import { useAppSelector, useAppDispatch } from '../../../shared/hooks';
+import { fetchFarmerStats, fetchFarmerProducts } from '../farmerSlice';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const revenueData = [
@@ -55,14 +59,33 @@ const statusColors: Record<string, string> = {
 
 export function FarmerDashboardPage() {
   const { t } = useTranslation();
-  const { stats } = useAppSelector((state) => state.farmer);
-  const lowStock = myProducts.filter((p) => p.alert);
+  const dispatch = useAppDispatch();
+  const { stats, products } = useAppSelector((state) => state.farmer);
+
+  useEffect(() => {
+    dispatch(fetchFarmerStats());
+    dispatch(fetchFarmerProducts());
+  }, [dispatch]);
+
+  // Use real products from Redux; fall back to mock if still loading
+  const displayProducts = products.length > 0
+    ? products.slice(0, 5).map((p) => ({
+        id: p.id,
+        name: p.name,
+        stock: p.quantity,
+        unit: p.unit,
+        price: p.retailPrice,
+        alert: p.quantity <= 10,
+      }))
+    : myProducts;
+
+  const lowStock = displayProducts.filter((p) => p.alert);
 
   const statCards = [
-    { label: t('farmer.stat_revenue'), value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`, sub: t('farmer.stat_revenue_sub'), icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
-    { label: t('farmer.stat_orders'), value: String(stats.totalOrders), sub: t('farmer.stat_orders_sub'), icon: RiShoppingBagLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
-    { label: t('farmer.stat_products'), value: String(stats.totalProducts), sub: t('farmer.stat_products_sub'), icon: RiPlantLine, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600' },
-    { label: t('farmer.stat_alerts'), value: String(lowStock.length), sub: t('farmer.stat_alerts_sub'), icon: RiAlertLine, iconBg: 'bg-red-50 dark:bg-red-900/20', iconColor: 'text-red-500' },
+    { label: 'Total Revenue', value: `₹${Number(stats.totalRevenue).toLocaleString('en-IN')}`, sub: 'Farmer payout from paid orders', icon: RiMoneyDollarCircleLine, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600' },
+    { label: 'Total Orders', value: String(stats.totalOrders), sub: 'All bulk orders received', icon: RiShoppingBagLine, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600' },
+    { label: 'Completed Orders', value: String(stats.completedOrders), sub: 'Delivered to wholesaler', icon: RiCheckboxCircleLine, iconBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-600' },
+    { label: 'Active Orders', value: String(stats.activeOrders), sub: 'In progress / processing', icon: RiLoader4Line, iconBg: 'bg-orange-50 dark:bg-orange-900/20', iconColor: 'text-orange-500' },
   ];
 
   const productHeaders = [t('farmer.col_product'), t('farmer.col_stock'), t('farmer.col_price'), ''];
@@ -99,6 +122,15 @@ export function FarmerDashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Top Selling Product Banner */}
+      {stats.topSellingProduct && stats.topSellingProduct !== '-' && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg px-5 py-3 flex items-center gap-3">
+          <RiTrophyLine size={16} className="text-amber-600 shrink-0" />
+          <span className="text-sm font-medium text-amber-800 dark:text-amber-400">Top Selling Product:</span>
+          <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{stats.topSellingProduct}</span>
+        </div>
+      )}
 
       {/* Stock Alerts Banner */}
       {lowStock.length > 0 && (
@@ -167,7 +199,7 @@ export function FarmerDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-              {myProducts.map((p) => (
+              {displayProducts.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-5 py-3">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">{p.name}</p>

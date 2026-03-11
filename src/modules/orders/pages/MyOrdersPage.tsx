@@ -15,6 +15,8 @@ import {
   RiArrowLeftSLine,
   RiInboxUnarchiveLine,
   RiLoader4Line,
+  RiDownloadLine,
+  RiStore2Line,
 } from "react-icons/ri";
 import { useAppDispatch, useAppSelector } from "../../../shared/hooks";
 import { fetchOrders, setFilters, setPage, cancelOrder } from "../orderSlice";
@@ -164,6 +166,25 @@ export function MyOrdersPage() {
   );
   const [cancelModalId, setCancelModalId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (orderId: string) => {
+    setDownloadingId(orderId);
+    try {
+      const { orderService } = await import("../orderService");
+      const blob = await orderService.downloadInvoice(orderId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${orderId}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download invoice");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const filterOptions = [
     { value: "all", label: t("orders.filter.all") },
@@ -201,7 +222,7 @@ export function MyOrdersPage() {
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (isLoading && orders.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950 py-8 px-4">
+      <div className="min-h-screen bg-soft-bg dark:bg-gray-950 py-8 px-4">
         <div className="max-w-4xl mx-auto space-y-4">
           <div className="h-9 w-40 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" />
           {[1, 2, 3].map((i) => (
@@ -216,7 +237,7 @@ export function MyOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950">
+    <div className="min-h-screen bg-soft-bg dark:bg-gray-950">
       {/* Page header */}
       <div className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-6">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -287,7 +308,7 @@ export function MyOrdersPage() {
             <h2 className="text-lg font-bold text-slate-700 dark:text-white mb-2">
               {t("orders.no_orders")}
             </h2>
-            <p className="text-sm text-slate-400 dark:text-slate-500">
+            <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
               {filters.status === "all"
                 ? t("orders.no_orders_placed")
                 : t("orders.no_orders_status", {
@@ -296,6 +317,12 @@ export function MyOrdersPage() {
                       filters.status,
                   })}
             </p>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl"
+            >
+              <RiStore2Line size={16} /> Browse Products
+            </Link>
           </div>
         )}
 
@@ -496,6 +523,22 @@ export function MyOrdersPage() {
                       <RiTruckLine size={13} /> {t("orders.track_order")}
                     </Link>
                   )}
+                  <Link
+                    to={`/orders/${order.id}`}
+                    className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg"
+                  >
+                    <RiFileListLine size={13} /> View Details
+                  </Link>
+                  {order.status === "delivered" && (
+                    <button
+                      onClick={() => handleDownloadInvoice(order.id)}
+                      disabled={downloadingId === order.id}
+                      className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    >
+                      <RiDownloadLine size={13} />
+                      {downloadingId === order.id ? "Downloading…" : "Invoice"}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -538,7 +581,7 @@ export function MyOrdersPage() {
 
       {/* Cancel Confirmation Modal */}
       {cancelModalId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
             <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <RiCloseCircleLine size={28} className="text-red-500" />

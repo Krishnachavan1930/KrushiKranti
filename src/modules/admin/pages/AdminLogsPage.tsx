@@ -1,40 +1,57 @@
-import { useState } from 'react';
-import { Search, Clock, User, Package, Shield, Ban, CheckCircle } from 'lucide-react';
-
-// Mock activity logs
-const mockLogs = [
-  { id: '1', adminName: 'Super Admin', action: 'Banned User', target: 'Vikram Singh', timestamp: '2024-01-25T10:45:00', type: 'user' },
-  { id: '2', adminName: 'Super Admin', action: 'Approved Product', target: 'Fresh Spinach', timestamp: '2024-01-25T10:30:00', type: 'product' },
-  { id: '3', adminName: 'Moderator', action: 'Rejected Product', target: 'Low Quality Rice', timestamp: '2024-01-25T10:15:00', type: 'product' },
-  { id: '4', adminName: 'Super Admin', action: 'Resolved Fraud Alert', target: 'Suspicious Pricing', timestamp: '2024-01-25T09:45:00', type: 'alert' },
-  { id: '5', adminName: 'Moderator', action: 'Unbanned User', target: 'Priya Singh', timestamp: '2024-01-25T09:30:00', type: 'user' },
-  { id: '6', adminName: 'Super Admin', action: 'Approved Product', target: 'Organic Tomatoes', timestamp: '2024-01-25T09:00:00', type: 'product' },
-  { id: '7', adminName: 'Moderator', action: 'Banned User', target: 'Spam Account', timestamp: '2024-01-24T18:30:00', type: 'user' },
-  { id: '8', adminName: 'Super Admin', action: 'Updated Commission Rate', target: '5% to 5.5%', timestamp: '2024-01-24T16:00:00', type: 'system' },
-  { id: '9', adminName: 'Moderator', action: 'Approved Product', target: 'Premium Wheat', timestamp: '2024-01-24T14:30:00', type: 'product' },
-  { id: '10', adminName: 'Super Admin', action: 'Dismissed Fraud Alert', target: 'False Positive', timestamp: '2024-01-24T12:00:00', type: 'alert' },
-];
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Clock, User, Package, Shield, Ban, CheckCircle, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { adminService } from '../adminService';
 
 type LogType = 'user' | 'product' | 'alert' | 'system';
 
 interface Log {
-  id: string;
+  id: number;
+  adminId: number;
   adminName: string;
   action: string;
   target: string;
-  timestamp: string;
   type: LogType;
+  createdAt: string;
 }
 
 export function AdminLogsPage() {
-  const [logs] = useState<Log[]>(mockLogs as Log[]);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
 
-  const filteredLogs = logs.filter(log =>
-    log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.adminName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.target.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await adminService.getAdminLogs(page, pageSize, debouncedSearch || undefined);
+      setLogs(result.logs as Log[]);
+      setTotalPages(result.totalPages);
+      setTotalElements(result.totalElements);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const getActionIcon = (action: string) => {
     if (action.includes('Banned')) return <Ban size={14} className="text-red-500" />;
@@ -65,6 +82,12 @@ export function AdminLogsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
         <p className="text-sm text-gray-500 mt-1">Recent admin actions and system events</p>
+      </div>
+
+      {/* Demo Data Notice */}
+      <div className="flex items-center gap-2 p-3 mb-6 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+        <Info size={16} className="shrink-0" />
+        <span>Showing demo data. Audit log API is under development.</span>
       </div>
 
       {/* Search */}

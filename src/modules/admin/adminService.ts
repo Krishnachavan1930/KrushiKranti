@@ -138,4 +138,45 @@ export const adminService = {
       throw new Error(getErrorMessage(error, 'Failed to delete user'));
     }
   },
+
+  async getAdminLogs(
+    page: number = 0,
+    size: number = 20,
+    search?: string,
+    type?: string,
+  ): Promise<{
+    logs: Array<{
+      id: number;
+      adminId: number;
+      adminName: string;
+      action: string;
+      target: string;
+      type: string;
+      createdAt: string;
+    }>;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+  }> {
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('size', String(size));
+      if (search) params.set('search', search);
+      if (type) params.set('type', type);
+
+      const response = await api.get(`/v1/admin/logs?${params.toString()}`);
+      const pageData = response.data.data;
+      return {
+        logs: pageData.content,
+        totalElements: pageData.totalElements,
+        totalPages: pageData.totalPages,
+        number: pageData.number,
+        size: pageData.size,
+      };
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch admin logs'));
+    }
+  },
 };

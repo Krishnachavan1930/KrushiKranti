@@ -12,6 +12,7 @@ import {
   RiCloseLine,
   RiTimeLine,
   RiMoneyDollarCircleLine,
+  RiInboxUnarchiveLine,
 } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,6 +24,7 @@ import { adminService } from '../adminService';
 import { orderService } from '../../orders/orderService';
 import { productService } from '../../product/productService';
 import type { AdminUser } from '../types';
+import { ErrorState, Skeleton, TableRowSkeleton } from '../../../shared/components/ui';
 
 const revenueData = [
   { month: 'Oct', revenue: 85000 },
@@ -78,31 +80,56 @@ export function AdminDashboardPage() {
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
   const [orderStats, setOrderStats] = useState<{ totalOrders: number; totalRevenue: number; totalCommission: number } | null>(null);
   const [pendingProducts, setPendingProducts] = useState<{ name: string; farmer: string; category: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<{ data: DashStats }>('/v1/admin/dashboard/stats')
-      .then(res => setDashStats(res.data.data))
-      .catch(() => {});
+    const loadDashboard = async () => {
+      setIsLoading(true);
+      setLoadError(null);
 
-    adminService.getAllUsers(0, 5)
-      .then(res => setRecentUsers(res.users))
-      .catch(() => {});
+      const [statsRes, usersRes, orderRes, productRes] = await Promise.allSettled([
+        api.get<{ data: DashStats }>('/v1/admin/dashboard/stats'),
+        adminService.getAllUsers(0, 5),
+        orderService.getAdminStats(),
+        productService.getProducts({}, 1, 5),
+      ]);
 
-    orderService.getAdminStats()
-      .then(setOrderStats)
-      .catch(() => {});
+      if (statsRes.status === 'fulfilled') {
+        setDashStats(statsRes.value.data.data);
+      }
 
-    productService.getProducts({}, 1, 5)
-      .then(res => {
+      if (usersRes.status === 'fulfilled') {
+        setRecentUsers(usersRes.value.users);
+      }
+
+      if (orderRes.status === 'fulfilled') {
+        setOrderStats(orderRes.value);
+      }
+
+      if (productRes.status === 'fulfilled') {
         setPendingProducts(
-          res.data.slice(0, 3).map((p: any) => ({
+          productRes.value.data.slice(0, 3).map((p: any) => ({
             name: p.name,
             farmer: p.farmerName ?? 'Unknown',
             category: p.category ?? 'General',
-          }))
+          })),
         );
-      })
-      .catch(() => {});
+      }
+
+      if (
+        statsRes.status === 'rejected' &&
+        usersRes.status === 'rejected' &&
+        orderRes.status === 'rejected' &&
+        productRes.status === 'rejected'
+      ) {
+        setLoadError('Failed to load dashboard data. Please try again.');
+      }
+
+      setIsLoading(false);
+    };
+
+    loadDashboard();
   }, []);
 
   const statCards = [
@@ -135,21 +162,33 @@ export function AdminDashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((s) => (
-          <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.iconBg}`}>
-                <s.icon size={20} className={s.iconColor} />
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <Skeleton className="mt-4 h-8 w-20" />
+                <Skeleton className="mt-2 h-4 w-28" />
               </div>
-              <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                <RiArrowUpLine size={10} />{s.sub}
-              </span>
-            </div>
-            <p className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
-          </div>
-        ))}
+            ))
+          : statCards.map((s) => (
+              <div key={s.label} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.iconBg}`}>
+                    <s.icon size={20} className={s.iconColor} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                    <RiArrowUpLine size={10} />{s.sub}
+                  </span>
+                </div>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{s.value}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
+              </div>
+            ))}
       </div>
+
+      {loadError && (
+        <ErrorState message={loadError} onRetry={() => window.location.reload()} />
+      )}
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-4">
@@ -346,10 +385,20 @@ export function AdminDashboardPage() {
                   </td>
                 </tr>
               ))}
-              {recentUsers.length === 0 && (
+              {isLoading && (
+                <>
+                  <TableRowSkeleton columns={5} />
+                  <TableRowSkeleton columns={5} />
+                  <TableRowSkeleton columns={5} />
+                </>
+              )}
+
+              {!isLoading && recentUsers.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">
-                    Loading users...
+                    <div className="flex items-center justify-center gap-2">
+                      <RiInboxUnarchiveLine size={16} /> No users found
+                    </div>
                   </td>
                 </tr>
               )}

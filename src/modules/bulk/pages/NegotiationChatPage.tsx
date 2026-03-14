@@ -12,16 +12,17 @@ import {
 } from "../negotiationSlice";
 import { stompService } from "../../../services/stompService";
 import {
-  RiLoader4Line,
   RiSendPlaneFill,
   RiArrowLeftLine,
   RiHandCoinLine,
   RiAttachment2,
   RiCheckLine,
   RiCheckDoubleLine,
+  RiChat3Line,
 } from "react-icons/ri";
 import toast from "react-hot-toast";
 import ImageUpload from "../../../shared/components/ImageUpload";
+import { EmptyState, MessageSkeleton } from "../../../shared/components/ui";
 
 interface NegotiationChatPageProps {
   readOnly?: boolean;
@@ -761,25 +762,23 @@ export function NegotiationChatPage({
               )}
 
               {isLoading ? (
-                <div style={{ textAlign: "center", padding: 40 }}>
-                  <RiLoader4Line
-                    className="animate-spin"
-                    size={32}
-                    style={{ color: "#16a34a" }}
-                  />
+                <div style={{ padding: 24 }}>
+                  <MessageSkeleton />
                 </div>
               ) : messages.length === 0 ? (
                 <div
                   style={{
-                    textAlign: "center",
                     padding: 40,
-                    color: "#64748b",
                     background: "#fff",
                     borderRadius: 12,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                   }}
                 >
-                  No messages yet. Start the conversation!
+                  <EmptyState
+                    icon={<RiChat3Line size={26} />}
+                    title="No messages yet"
+                    message="Start the conversation by sending the first message."
+                  />
                 </div>
               ) : (
                 messages.map((msg) => {

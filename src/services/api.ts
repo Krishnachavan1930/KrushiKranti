@@ -1,5 +1,7 @@
 import axios from "axios";
 
+export const API_ERROR_EVENT = "krushikranti:api-error";
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
 });
@@ -34,6 +36,14 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
+    }
+
+    if (typeof window !== "undefined" && status !== 401) {
+      window.dispatchEvent(
+        new CustomEvent(API_ERROR_EVENT, {
+          detail: { status, message },
+        }),
+      );
     }
 
     // Create a more informative error

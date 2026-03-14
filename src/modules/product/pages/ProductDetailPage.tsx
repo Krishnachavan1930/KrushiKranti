@@ -63,7 +63,9 @@ export function ProductDetailPage() {
   const currentRole = role ?? user?.role ?? null;
 
   const isInCart = product ? cartItems.some((item) => item.productId === product.id) : false;
-  const isInWishlist = product ? wishlistItems.some((item: { id: string }) => item.id === product.id) : false;
+  const isInWishlist = product
+    ? wishlistItems.some((item: { id: string | number }) => String(item.id) === String(product.id))
+    : false;
 
   const { localise } = useProductLocale();
   const displayName = product ? localise(product.id, 'name', product.name) : '';
@@ -124,16 +126,10 @@ export function ProductDetailPage() {
     if (!isAuthenticated) { toast.error('Please login to add to wishlist'); return; }
     if (!product) return;
     if (isInWishlist) {
-      dispatch(removeFromWishlist(product.id));
+      dispatch(removeFromWishlist(String(product.id)));
       toast.success('Removed from wishlist');
     } else {
-      dispatch(addToWishlist({
-        productId: product.id,
-        name: product.name,
-        image: product.images[0],
-        price: product.retailPrice,
-        unit: product.unit,
-      }));
+      dispatch(addToWishlist(product));
       toast.success('Added to wishlist!');
     }
   };

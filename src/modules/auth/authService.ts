@@ -13,6 +13,8 @@ import type {
   VerifyResetOtpResponse,
   ResetPasswordResponse,
   Role,
+  UpdateAdminPasswordRequest,
+  UpdateAdminPasswordResponse,
 } from "./types";
 import { googleLogout } from "@react-oauth/google";
 import api from "../../services/api";
@@ -300,6 +302,28 @@ export const authService = {
         err.response?.data?.message ||
           err.message ||
           "Failed to create admin account",
+      );
+    }
+  },
+
+  async updateAdminPassword(
+    data: UpdateAdminPasswordRequest,
+  ): Promise<UpdateAdminPasswordResponse> {
+    try {
+      const response = await api.put<{ success: boolean; message: string }>(
+        "/admin/change-password",
+        data,
+      );
+      return { message: response.data.message || "Password updated successfully" };
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      throw new Error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to update password",
       );
     }
   },

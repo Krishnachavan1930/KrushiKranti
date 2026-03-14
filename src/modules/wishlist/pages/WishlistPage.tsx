@@ -11,21 +11,10 @@ export function WishlistPage() {
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
 
-    // Safely select wishlist items — guard against malformed localStorage state
     const rawItems = useAppSelector((state) => state.wishlist?.items);
     const cartItems = useAppSelector((state) => state.cart?.items ?? []);
 
-    // Filter out any corrupt/incomplete items that might cause render errors
-    const items: Product[] = Array.isArray(rawItems)
-        ? rawItems.filter(
-            (item): item is Product =>
-                item != null &&
-                typeof item === 'object' &&
-                typeof item.id === 'string' &&
-                typeof item.name === 'string' &&
-                Array.isArray(item.images)
-        )
-        : [];
+    const items: Product[] = Array.isArray(rawItems) ? rawItems : [];
 
     const handleAddToCart = async (product: Product) => {
         const alreadyInCart = cartItems.some((i) => i.productId === product.id);
@@ -46,7 +35,7 @@ export function WishlistPage() {
         }
     };
 
-    const handleRemove = (id: string, name: string) => {
+    const handleRemove = (id: string | number, name: string) => {
         dispatch(removeFromWishlist(id));
         toast.success(`${name} removed from wishlist`);
     };
@@ -99,8 +88,8 @@ export function WishlistPage() {
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {items.map((product) => {
-                        const isInCart = cartItems.some((i) => i.productId === product.id);
-                        const productImage = product.images?.[0] ?? '';
+                        const isInCart = cartItems.some((i) => String(i.productId) === String(product.id));
+                        const productImage = product.images?.[0] ?? product.imageUrl ?? '';
                         return (
                             <div
                                 key={product.id}

@@ -98,6 +98,15 @@ export interface ResetPasswordResponse {
   message: string;
 }
 
+export interface UpdateAdminPasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateAdminPasswordResponse {
+  message: string;
+}
+
 export interface ResetPasswordResponse {
   message: string;
 }

@@ -21,7 +21,7 @@ export function FarmerLayout() {
         { to: '/farmer/orders', label: t('farmer.nav.orders'), icon: RiShoppingBagLine },
         { to: '/farmer/earnings', label: t('farmer.nav.revenue'), icon: RiBarChartLine },
         { to: '/farmer/negotiations', label: 'Negotiations', icon: RiMessage2Line },
-        { to: '/farmer/chat', label: t('farmer.nav.chat'), icon: RiMessage2Line },
+        // { to: '/farmer/chat', label: t('farmer.nav.chat'), icon: RiMessage2Line },
         { to: '/farmer/profile', label: t('farmer.nav.profile'), icon: RiUserLine },
     ];
 

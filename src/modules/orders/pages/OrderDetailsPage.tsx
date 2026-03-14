@@ -12,9 +12,12 @@ import {
   RiTimeLine,
   RiRefund2Line,
 } from "react-icons/ri";
+import { FiDownload } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../../shared/hooks";
 import { fetchOrderById } from "../orderSlice";
 import type { OrderStatus } from "../types";
+import { generateInvoicePdf } from "../../../components/invoice/InvoiceTemplate.tsx";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -108,6 +111,7 @@ export function OrderDetailsPage() {
     isLoading,
     error,
   } = useAppSelector((s) => s.orders);
+  const authUser = useAppSelector((s) => s.auth.user);
 
   useEffect(() => {
     if (id) dispatch(fetchOrderById(id));
@@ -147,6 +151,29 @@ export function OrderDetailsPage() {
   const currentStep = STATUS_STEP_INDEX[statusNorm] ?? 0;
   const isCancelled = statusNorm === "cancelled" || statusNorm === "refunded";
 
+  const canDownloadInvoice =
+    (order.paymentStatus ?? "").toLowerCase() === "completed";
+
+  const handleDownloadInvoice = () => {
+    if (!order || !order.items || order.items.length === 0) {
+      toast.error("Order data is missing. Unable to generate invoice.");
+      return;
+    }
+
+    // Additional client-side ownership guard for the order details page.
+    if (authUser?.role === "user" && String(order.userId || "") !== String(authUser.id)) {
+      toast.error("You are not allowed to download this invoice.");
+      return;
+    }
+
+    try {
+      generateInvoicePdf(order);
+      toast.success("Invoice downloaded successfully");
+    } catch {
+      toast.error("Invoice generation failed. Please try again.");
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-10">
       {/* ── Header ── */}
@@ -165,6 +192,15 @@ export function OrderDetailsPage() {
             #{order.id}
           </p>
         </div>
+
+        {canDownloadInvoice && (
+          <button
+            onClick={handleDownloadInvoice}
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-2 rounded-lg transition-colors"
+          >
+            <FiDownload size={13} /> Download Invoice
+          </button>
+        )}
 
         {(statusNorm === "shipped" ||
           statusNorm === "processing" ||

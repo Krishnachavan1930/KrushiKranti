@@ -15,13 +15,14 @@ import {
   RiArrowLeftSLine,
   RiInboxUnarchiveLine,
   RiLoader4Line,
-  RiDownloadLine,
   RiStore2Line,
 } from "react-icons/ri";
+import { FiDownload } from "react-icons/fi";
 import { useAppDispatch, useAppSelector } from "../../../shared/hooks";
 import { fetchOrders, setFilters, setPage, cancelOrder } from "../orderSlice";
-import type { OrderStatus } from "../types";
+import type { Order, OrderStatus } from "../types";
 import toast from "react-hot-toast";
+import { generateInvoicePdf } from "../../../components/invoice/InvoiceTemplate.tsx";
 
 // ── Status configuration ─────────────────────────────────────────────────────
 const getStatusMeta = (t: any) => ({
@@ -168,19 +169,18 @@ export function MyOrdersPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const handleDownloadInvoice = async (orderId: string) => {
-    setDownloadingId(orderId);
+  const handleDownloadInvoice = async (order: Order) => {
+    setDownloadingId(order.id);
     try {
-      const { orderService } = await import("../orderService");
-      const blob = await orderService.downloadInvoice(orderId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${orderId}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      if (!order.id || !order.items || order.items.length === 0) {
+        toast.error(t("orders.invoice_missing_data"));
+        return;
+      }
+
+      generateInvoicePdf(order);
+      toast.success(t("orders.invoice_download_success"));
     } catch {
-      toast.error("Failed to download invoice");
+      toast.error(t("orders.invoice_download_failed"));
     } finally {
       setDownloadingId(null);
     }
@@ -240,7 +240,7 @@ export function MyOrdersPage() {
     <div className="min-h-screen bg-soft-bg dark:bg-gray-950">
       {/* Page header */}
       <div className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-6">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
               <RiShoppingBagLine
@@ -283,7 +283,7 @@ export function MyOrdersPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
+      <div className="w-full px-4 md:px-8 py-8">
         {/* Error */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 text-sm text-red-600 dark:text-red-400">
@@ -321,7 +321,7 @@ export function MyOrdersPage() {
               to="/products"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl"
             >
-              <RiStore2Line size={16} /> Browse Products
+              <RiStore2Line size={16} /> {t("products.browse_products")}
             </Link>
           </div>
         )}
@@ -523,20 +523,17 @@ export function MyOrdersPage() {
                       <RiTruckLine size={13} /> {t("orders.track_order")}
                     </Link>
                   )}
-                  <Link
-                    to={`/orders/${order.id}`}
-                    className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg"
-                  >
-                    <RiFileListLine size={13} /> View Details
-                  </Link>
-                  {order.status === "delivered" && (
+                  {((order.paymentStatus ?? "").toLowerCase() === "completed" ||
+                    String(order.status).toLowerCase() === "confirmed") && (
                     <button
-                      onClick={() => handleDownloadInvoice(order.id)}
+                      onClick={() => handleDownloadInvoice(order)}
                       disabled={downloadingId === order.id}
-                      className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      className="flex items-center gap-2 text-xs font-semibold text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 px-3 py-1.5 rounded-lg disabled:opacity-50"
                     >
-                      <RiDownloadLine size={13} />
-                      {downloadingId === order.id ? "Downloading…" : "Invoice"}
+                      <FiDownload size={13} />
+                      {downloadingId === order.id
+                        ? t("orders.invoice_downloading")
+                        : t("orders.download_invoice")}
                     </button>
                   )}
                 </div>

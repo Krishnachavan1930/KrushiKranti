@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { store } from './app/store';
 import { AppRouter } from './routes';
 import { useAppSelector } from './shared/hooks';
 import { useWebSocket } from './shared/hooks/useWebSocket';
+import { API_ERROR_EVENT } from './services/api';
 
 
 function DarkModeInitializer() {
@@ -28,6 +30,17 @@ function WebSocketInitializer() {
 }
 
 function AppContent() {
+  useEffect(() => {
+    const onApiError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ status?: number; message?: string }>;
+      const message = customEvent.detail?.message || 'Something went wrong. Please try again later.';
+      toast.error(message);
+    };
+
+    window.addEventListener(API_ERROR_EVENT, onApiError as EventListener);
+    return () => window.removeEventListener(API_ERROR_EVENT, onApiError as EventListener);
+  }, []);
+
   return (
     <>
       <DarkModeInitializer />

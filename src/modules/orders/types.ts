@@ -46,6 +46,8 @@ export interface Order {
   // Farmer info
   farmerId?: string;
   farmerName?: string;
+  farmLocation?: string;
+  farmerPhone?: string;
   
   // Product info for single product orders
   productId?: string;

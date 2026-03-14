@@ -4,8 +4,10 @@ import { fetchProducts, fetchCategories, setFilters, clearFilters, setPage } fro
 import { ProductCard } from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import { useTranslation } from 'react-i18next';
+import { RiPlantLine } from 'react-icons/ri';
 import type { ProductCategory } from '../types';
 import fruits from '../../../assets/fruits.png';
+import { EmptyState, ErrorState } from '../../../shared/components/ui';
 
 export function ProductListPage() {
   const { t } = useTranslation();
@@ -230,8 +232,8 @@ export function ProductListPage() {
         {/* Products */}
         <div className="flex-1 min-w-0">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-5 text-sm text-red-600 dark:text-red-400">
-              {error}
+            <div className="mb-5">
+              <ErrorState message={error} onRetry={() => dispatch(fetchProducts({ filters, page: pagination.page, limit: pagination.limit }))} />
             </div>
           )}
 
@@ -244,8 +246,8 @@ export function ProductListPage() {
             </p>
           )}
 
-          {/* Grid: 3 col desktop, 2 tablet, 1 mobile */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Grid: 4 col desktop, 2 tablet, 1 mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {isLoading
               ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
               : products.map((product, index) => (
@@ -255,23 +257,13 @@ export function ProductListPage() {
 
           {/* Empty state */}
           {!isLoading && products.length === 0 && (
-            <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-800">
-              <p className="text-4xl mb-4">🔍</p>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-2">
-                {t('products.no_products')}
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                {t('products.no_products_desc')}
-              </p>
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearFilters}
-                  className="px-5 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg"
-                >
-                  {t('products.clear_filters')}
-                </button>
-              )}
-            </div>
+            <EmptyState
+              icon={<RiPlantLine size={26} />}
+              title={t('products.no_products')}
+              message={t('products.no_products_desc')}
+              actionLabel={hasActiveFilters ? t('products.clear_filters') : undefined}
+              onAction={hasActiveFilters ? handleClearFilters : undefined}
+            />
           )}
 
           {/* Pagination */}

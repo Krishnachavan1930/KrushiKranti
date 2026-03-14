@@ -302,7 +302,7 @@ export const orderService = {
    */
   async downloadInvoice(orderId: string): Promise<Blob> {
     try {
-      const response = await api.get(`/v1/orders/${orderId}/invoice`, {
+      const response = await api.get(`/v1/invoices/${orderId}`, {
         responseType: "blob",
       });
       return response.data;

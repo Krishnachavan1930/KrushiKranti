@@ -11,6 +11,7 @@ import {
   RiBankCardLine,
   RiTruckLine,
 } from "react-icons/ri";
+import { FiUser } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import { BaseDashboardLayout } from "./BaseDashboardLayout";
 
@@ -42,6 +43,7 @@ export function AdminLayout() {
     { to: "/admin/logs", label: t("admin.nav.logs"), icon: RiFileTextLine },
     { to: "/admin/negotiations", label: "Negotiations", icon: RiMessage2Line },
     { to: "/admin/chat", label: t("admin.nav.chat"), icon: RiMessage2Line },
+    { to: "/admin/profile", label: "Profile", icon: FiUser },
   ];
 
   return (

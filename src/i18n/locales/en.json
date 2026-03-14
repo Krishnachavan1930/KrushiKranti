@@ -279,6 +279,11 @@
     },
     "view_details": "View Details",
     "hide_details": "Hide Details",
+    "download_invoice": "Download Invoice",
+    "invoice_downloading": "Downloading...",
+    "invoice_missing_data": "Order data is missing for invoice generation",
+    "invoice_download_success": "Invoice downloaded successfully",
+    "invoice_download_failed": "Failed to generate invoice",
     "cancel_order": "Cancel Order",
     "track_order": "Track Order",
     "no_orders": "No orders found",
@@ -297,6 +302,35 @@
       "status": "Payment Status",
       "mode": "Method"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "mark_all_read": "Mark all read",
+    "loading": "Loading...",
+    "empty": "No notifications yet",
+    "close": "Close"
+  },
+  "admin_profile": {
+    "title": "Admin Profile",
+    "subtitle": "Manage your profile information and keep your account secure.",
+    "admin_information": "Admin Information",
+    "upload_avatar": "Upload avatar",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "change_password": "Change Password",
+    "current_password": "Current Password",
+    "new_password": "New Password",
+    "confirm_new_password": "Confirm New Password",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "current_password_required": "Current password is required.",
+    "new_password_min": "New password must be at least 8 characters.",
+    "password_mismatch": "Password confirmation does not match.",
+    "password_updated_success": "Password updated successfully.",
+    "update_password": "Update Password",
+    "updating": "Updating...",
+    "default_admin_name": "Admin User"
   },
   "wishlist": {
     "title": "My Wishlist",
@@ -394,16 +428,16 @@
       "call_us": "Call us anytime",
       "items": {
         "1": {
-          "q": "World's hottest destinations for vegans",
-          "a": "Suspendisse finibus urna mauris, vitae consequat quam vel. Vestibulum leo ligula, molestie ullamcorper vulputate vitae sodales commodo nisl. Nulla facilisi."
+          "q": "How does KrushiKranti connect farmers and buyers?",
+          "a": "KrushiKranti enables direct trade between farmers, consumers, and wholesalers. Farmers list products with real-time pricing, and buyers can place retail or bulk orders without middlemen."
         },
         "2": {
-          "q": "Let's grow naturally and live naturally",
-          "a": "Suspendisse finibus urna mauris, vitae consequat quam vel. Vestibulum leo ligula, molestie ullamcorper vulputate vitae sodales commodo nisl. Nulla facilisi. Pellentesque est metus many of some form."
+          "q": "Are product prices and quality details transparent?",
+          "a": "Yes. Every listing includes pricing, quantity, unit, farmer details, and availability. Buyers can review product information before checkout, and farmers can manage stock directly from their dashboard."
         },
         "3": {
-          "q": "Best vegetables for your healthy hair",
-          "a": "Our expert farmers provide high-quality organic produce rich in nutrients specifically beneficial for hair and skin health. We ensure only the freshest picks reach you."
+          "q": "Can wholesalers place bulk orders and negotiate pricing?",
+          "a": "Absolutely. Wholesalers can send bulk purchase requests, negotiate with farmers, and track request status in one place. This helps both sides agree on fair prices and delivery plans quickly."
         }
       }
     }

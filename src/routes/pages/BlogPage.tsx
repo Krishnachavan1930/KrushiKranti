@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FiSearch, FiUser, FiMessageSquare, FiArrowRight } from "react-icons/fi";
+import { RiArticleLine } from "react-icons/ri";
 import blogBg from "../../assets/Blogspage.png";
 
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlogs } from "../../modules/blog/blogSlice";
 import type { RootState, AppDispatch } from "../../app/store";
+import { EmptyState, ErrorState, Skeleton } from "../../shared/components/ui";
 
 export function BlogPage() {
     const { t } = useTranslation();
@@ -58,8 +60,37 @@ export function BlogPage() {
             <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-3 gap-12">
                 {/* Blog Post List */}
                 <div className="lg:col-span-2 space-y-16">
-                    {loading && <div className="text-center py-12">{t("common.loading")}</div>}
-                    {error && <div className="text-center py-12 text-red-500">{error}</div>}
+                    {loading && (
+                        <div className="space-y-12">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div key={index} className="space-y-5">
+                                    <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
+                                    <Skeleton className="h-4 w-40" />
+                                    <Skeleton className="h-10 w-5/6" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-2/3" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {!loading && error && (
+                        <ErrorState
+                            message={error}
+                            onRetry={() => dispatch(fetchBlogs())}
+                        />
+                    )}
+
+                    {!loading && !error && blogPosts.length === 0 && (
+                        <EmptyState
+                            icon={<RiArticleLine size={28} />}
+                            title="No blog posts yet"
+                            message="Fresh stories and farming insights will appear here soon."
+                            actionLabel="Refresh"
+                            onAction={() => dispatch(fetchBlogs())}
+                        />
+                    )}
+
                     {!loading && !error && blogPosts.map((post) => (
                         <article key={post.id} className="group">
                             <div className="relative overflow-hidden rounded-2xl aspect-[16/9] mb-8 shadow-xl">

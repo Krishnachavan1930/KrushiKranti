@@ -25,6 +25,10 @@ interface AuthState {
   // Admin creation states
   adminCreateLoading: boolean;
   adminCreateError: string | null;
+  // Admin password update states
+  adminPasswordUpdateLoading: boolean;
+  adminPasswordUpdateSuccess: boolean;
+  adminPasswordUpdateError: string | null;
 }
 
 const getInitialAuthState = (): AuthState => {
@@ -54,6 +58,10 @@ const getInitialAuthState = (): AuthState => {
     // Admin creation states
     adminCreateLoading: false,
     adminCreateError: null,
+    // Admin password update states
+    adminPasswordUpdateLoading: false,
+    adminPasswordUpdateSuccess: false,
+    adminPasswordUpdateError: null,
   };
 };
 
@@ -132,6 +140,20 @@ export const createAdmin = createAsyncThunk(
   }
 );
 
+export const updateAdminPassword = createAsyncThunk(
+  'auth/updateAdminPassword',
+  async (
+    data: { currentPassword: string; newPassword: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await authService.updateAdminPassword(data);
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  },
+);
+
 export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
   async (email: string, { rejectWithValue }) => {
@@ -179,6 +201,7 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
       state.adminCreateError = null;
+      state.adminPasswordUpdateError = null;
     },
     clearOtpError: (state) => {
       state.otpError = null;
@@ -210,6 +233,11 @@ const authSlice = createSlice({
       state.resetLoading = false;
       state.resetError = null;
       state.resetSuccess = false;
+    },
+    resetAdminPasswordUpdateState: (state) => {
+      state.adminPasswordUpdateLoading = false;
+      state.adminPasswordUpdateSuccess = false;
+      state.adminPasswordUpdateError = null;
     }
   },
   extraReducers: (builder) => {
@@ -348,9 +376,35 @@ const authSlice = createSlice({
       .addCase(createAdmin.rejected, (state, action) => {
         state.adminCreateLoading = false;
         state.adminCreateError = action.payload as string;
+      })
+      // Update Admin Password
+      .addCase(updateAdminPassword.pending, (state) => {
+        state.adminPasswordUpdateLoading = true;
+        state.adminPasswordUpdateSuccess = false;
+        state.adminPasswordUpdateError = null;
+      })
+      .addCase(updateAdminPassword.fulfilled, (state) => {
+        state.adminPasswordUpdateLoading = false;
+        state.adminPasswordUpdateSuccess = true;
+        state.adminPasswordUpdateError = null;
+      })
+      .addCase(updateAdminPassword.rejected, (state, action) => {
+        state.adminPasswordUpdateLoading = false;
+        state.adminPasswordUpdateSuccess = false;
+        state.adminPasswordUpdateError = action.payload as string;
       });
   },
 });
 
-export const { clearError, clearOtpError, setPendingVerificationEmail, resetOtpState, setUser, setToken, clearResetError, resetPasswordState } = authSlice.actions;
+export const {
+  clearError,
+  clearOtpError,
+  setPendingVerificationEmail,
+  resetOtpState,
+  setUser,
+  setToken,
+  clearResetError,
+  resetPasswordState,
+  resetAdminPasswordUpdateState,
+} = authSlice.actions;
 export default authSlice.reducer;

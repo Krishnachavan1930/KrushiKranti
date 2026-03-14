@@ -256,6 +256,11 @@ const AdminShipmentsPage = lazy(() =>
     default: m.AdminShipmentsPage,
   })),
 );
+const AdminProfilePage = lazy(() =>
+  import("../pages/admin/profile/AdminProfilePage").then((m) => ({
+    default: m.AdminProfilePage,
+  })),
+);
 
 // ── Bulk Marketplace pages ──────────────────────────────────────────────────
 const BulkMarketPage = lazy(() =>
@@ -507,7 +512,7 @@ const router = createBrowserRouter([
         path: "profile",
         element: (
           <SuspenseWrapper>
-            <ProfilePage />
+            <AdminProfilePage />
           </SuspenseWrapper>
         ),
       },
@@ -584,14 +589,14 @@ const router = createBrowserRouter([
           </SuspenseWrapper>
         ),
       },
-      {
-        path: "chat",
-        element: (
-          <SuspenseWrapper>
-            <ChatPage />
-          </SuspenseWrapper>
-        ),
-      },
+      // {
+      //   path: "chat",
+      //   element: (
+      //     <SuspenseWrapper>
+      //       <ChatPage />
+      //     </SuspenseWrapper>
+      //   ),
+      // },
       {
         path: "bulk-products",
         element: (
@@ -658,6 +663,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "bulk-market",
+        element: (
+          <SuspenseWrapper>
+            <BulkMarketPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
         path: "bulk-requests",
         element: (
           <SuspenseWrapper>
@@ -713,14 +726,14 @@ const router = createBrowserRouter([
           </SuspenseWrapper>
         ),
       },
-      {
-        path: "chat",
-        element: (
-          <SuspenseWrapper>
-            <ChatPage />
-          </SuspenseWrapper>
-        ),
-      },
+      // {
+      //   path: "chat",
+      //   element: (
+      //     <SuspenseWrapper>
+      //       <ChatPage />
+      //     </SuspenseWrapper>
+      //   ),
+      // },
     ],
   },
   // ── Admin protected routes ─────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   RiNotification3Line,
   RiShoppingBag3Line,
@@ -53,6 +54,7 @@ const typeColor: Record<NotificationType, string> = {
 };
 
 export function NotificationDropdown() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
@@ -101,7 +103,7 @@ export function NotificationDropdown() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 transition-none relative"
-        title="Notifications"
+        title={t("notifications.title")}
       >
         <RiNotification3Line size={24} />
         {unreadCount > 0 && (
@@ -117,7 +119,7 @@ export function NotificationDropdown() {
           <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Notifications
+                {t("notifications.title")}
               </h3>
               {unreadCount > 0 && (
                 <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
@@ -130,7 +132,7 @@ export function NotificationDropdown() {
                 onClick={() => dispatch(markAllNotificationsReadThunk())}
                 className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest"
               >
-                Mark all read
+                {t("notifications.mark_all_read")}
               </button>
             )}
           </div>
@@ -140,7 +142,7 @@ export function NotificationDropdown() {
             {isLoading ? (
               <div className="py-10 text-center">
                 <RiLoader4Line size={24} className="mx-auto text-green-500 animate-spin mb-2" />
-                <p className="text-xs text-slate-400">Loading...</p>
+                <p className="text-xs text-slate-400">{t("notifications.loading")}</p>
               </div>
             ) : notifications.length === 0 ? (
               <div className="py-10 text-center">
@@ -148,7 +150,7 @@ export function NotificationDropdown() {
                   size={28}
                   className="mx-auto text-slate-300 dark:text-slate-600 mb-2"
                 />
-                <p className="text-xs text-slate-400">No notifications yet</p>
+                <p className="text-xs text-slate-400">{t("notifications.empty")}</p>
               </div>
             ) : (
               notifications.map((notif) => {
@@ -196,7 +198,7 @@ export function NotificationDropdown() {
               onClick={() => setIsOpen(false)}
               className="w-full text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest"
             >
-              Close
+              {t("notifications.close")}
             </button>
           </div>
         </div>

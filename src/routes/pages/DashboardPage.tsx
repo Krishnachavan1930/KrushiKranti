@@ -9,11 +9,13 @@ import {
   RiMapPinLine,
   RiArrowUpLine,
   RiLoader4Line,
+  RiInboxUnarchiveLine,
 } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import { fetchOrders } from '../../modules/orders/orderSlice';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { EmptyState, TableRowSkeleton } from '../../shared/components/ui';
 
 const spendData = [
   { month: 'Oct', amount: 840 },
@@ -120,7 +122,7 @@ export function DashboardPage() {
               {t('common.view_all')} <RiArrowRightSLine size={14} />
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
@@ -133,11 +135,10 @@ export function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center">
-                      <RiLoader4Line className="animate-spin text-green-600 mx-auto" size={20} />
-                    </td>
-                  </tr>
+                  <>
+                    <TableRowSkeleton columns={4} />
+                    <TableRowSkeleton columns={4} />
+                  </>
                 ) : recentOrders.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">
@@ -175,6 +176,40 @@ export function DashboardPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading && (
+              <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-gray-900">
+                <RiLoader4Line className="animate-spin text-green-600" size={20} />
+              </div>
+            )}
+
+            {!isLoading && recentOrders.length === 0 && (
+              <EmptyState
+                icon={<RiInboxUnarchiveLine size={22} />}
+                title="No orders yet"
+                message="Browse products to place your first order."
+                actionLabel="Browse products"
+                onAction={() => (window.location.href = '/products')}
+              />
+            )}
+
+            {!isLoading && recentOrders.map((o) => {
+              const item = o.items?.[0];
+              return (
+                <div key={o.id} className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-gray-900">
+                  <p className="text-xs text-slate-400">#{o.id}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    {item?.name ?? o.productName ?? 'Product'}
+                  </p>
+                  <div className="mt-2 flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                    <span>Qty: {item?.quantity ?? o.quantity ?? 1}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹{(o.totalAmount ?? 0).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
